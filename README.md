@@ -37,6 +37,6 @@ Every page reads prices through `sheetFor(slug, { branch, tier })` in `lib/prici
 1. Import this repository as a Vercel project (framework: Next.js, no other settings). `main` deploys to production; pull requests get previews.
 2. Create a Supabase project, run `supabase/migrations/*.sql` then `supabase/seed.sql` in the SQL editor, and add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` to the Vercel project.
 3. In Vercel → Settings → Domains add `www.managerspizza.com` (primary) and `managerspizza.com` (redirect to www).
-4. In Namecheap → Domain List → managerspizza.com → Advanced DNS: an **A** record for `@` → `76.76.21.21` and a **CNAME** for `www` → `cname.vercel-dns.com` (or the exact values Vercel shows). Remove old Google Sites records; keep MX/SPF/DKIM records if the domain has email.
+4. In Namecheap → Domain List → managerspizza.com → Advanced DNS, use the records Vercel shows for this project (Settings → Domains). At setup these were: **A** `@` → `216.198.79.1`, **A** `@` → `64.29.17.1`, **CNAME** `www` → `dcb33eee5d282416.vercel-dns-017.com.` Remove the old `@` A record (162.159.140.166) and the `www` CNAME to sites.ludicrous.cloud. Keep the email forwarding records (MX `eforward1`–`5.registrar-servers.com` and the SPF TXT).
 
 Form submissions land in the `leads` table (Supabase → Table editor) until the admin inbox is built.
