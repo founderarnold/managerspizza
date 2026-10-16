@@ -3,16 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ClipboardList, Menu, Phone, X } from "lucide-react";
+import { ClipboardList, LogIn, Menu, Phone, UserRound, X } from "lucide-react";
 import { NAV, SITE } from "@/lib/site";
 import { Logo } from "./Logo";
 import { useQuote } from "./QuoteProvider";
+import { useSignedIn } from "./useSignedIn";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { count } = useQuote();
+  const signedIn = useSignedIn();
+  const account = signedIn
+    ? { href: "/account", label: "My account", Icon: UserRound }
+    : { href: `/login${pathname && pathname !== "/" && !pathname.startsWith("/login") ? `?next=${encodeURIComponent(pathname)}` : ""}`, label: "Sign in", Icon: LogIn };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -55,6 +60,16 @@ export function Header() {
           })}
         </nav>
         <div className="flex items-center gap-2">
+          <Link
+            href={account.href}
+            aria-label={account.label}
+            className={`inline-flex h-11 items-center justify-center gap-2 rounded-full border border-line bg-white px-3 text-[15px] font-semibold text-ink transition hover:border-ink/40 sm:px-4 ${
+              pathname.startsWith("/account") || pathname.startsWith("/login") ? "border-ink/40 bg-sand" : ""
+            }`}
+          >
+            <account.Icon size={18} aria-hidden />
+            <span className="hidden sm:inline">{account.label}</span>
+          </Link>
           <Link href="/quote" className="btn-primary !px-4" aria-label={`Quote list, ${count} items`}>
             <ClipboardList size={18} aria-hidden />
             <span className="hidden sm:inline">Quote</span>
@@ -85,8 +100,8 @@ export function Header() {
               </li>
             ))}
             <li>
-              <Link href="/account" className="block rounded-xl px-3 py-3 text-base font-medium hover:bg-sand">
-                Sign in
+              <Link href={account.href} className="flex items-center gap-2 rounded-xl px-3 py-3 text-base font-semibold text-brand-red-deep hover:bg-sand">
+                <account.Icon size={18} aria-hidden /> {account.label}
               </Link>
             </li>
           </ul>

@@ -1,14 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Boxes, ChefHat, Handshake, MapPin, Package, Pizza, Snowflake, Store, Truck, Wheat } from "lucide-react";
-import { CATEGORIES, PRICE_SHEETS, formatPeso, priceRange, sheetsInCategory } from "@/lib/catalog";
+import { CATEGORIES, formatPeso, priceRange } from "@/lib/catalog";
+import { priceSheets } from "@/lib/prices-db";
 import { BRANCHES } from "@/lib/branches";
 import logoYellow from "@/public/brand/logo-full-on-yellow.png";
 
 const CAT_ICON = { "ready-to-cook": Pizza, "dough-crust": Wheat, "cheese-sauce-toppings": ChefHat, "boxes-packaging": Boxes, equipment: Package } as const;
 
-export default function Home() {
-  const classic = PRICE_SHEETS[0];
+export const revalidate = 300;
+
+export default async function Home() {
+  const all = await priceSheets();
+  const classic = all[0];
   return (
     <>
       <section className="relative overflow-hidden bg-brand-yellow">
@@ -67,7 +71,7 @@ export default function Home() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {CATEGORIES.map((c) => {
             const Icon = CAT_ICON[c.id];
-            const sheets = sheetsInCategory(c.id);
+            const sheets = all.filter((s) => s.category === c.id);
             const min = Math.min(...sheets.map((s) => priceRange(s).min));
             return (
               <Link key={c.id} href={`/shop#${c.id}`} className="card group flex flex-col p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lift">
