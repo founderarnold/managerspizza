@@ -3,16 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ClipboardList, Menu, Phone, X } from "lucide-react";
+import { ClipboardList, Menu, Phone, User, X } from "lucide-react";
 import { NAV, SITE } from "@/lib/site";
 import { Logo } from "./Logo";
 import { useQuote } from "./QuoteProvider";
+import { useSignedIn } from "./useSignedIn";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { count } = useQuote();
+  const signedIn = useSignedIn();
+  const accountHref = signedIn ? "/account" : "/login";
+  const accountLabel = signedIn ? "My account" : "Sign in";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -55,6 +59,17 @@ export function Header() {
           })}
         </nav>
         <div className="flex items-center gap-2">
+          <Link href={accountHref} className="btn-ghost hidden !px-4 lg:inline-flex">
+            <User size={18} aria-hidden /> {accountLabel}
+          </Link>
+          <Link
+            href={accountHref}
+            aria-label={accountLabel}
+            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-line px-3 text-sm font-semibold lg:hidden"
+          >
+            <User size={19} aria-hidden />
+            <span className="hidden min-[360px]:inline">{accountLabel}</span>
+          </Link>
           <Link href="/quote" className="btn-primary !px-4" aria-label={`Quote list, ${count} items`}>
             <ClipboardList size={18} aria-hidden />
             <span className="hidden sm:inline">Quote</span>
@@ -85,8 +100,8 @@ export function Header() {
               </li>
             ))}
             <li>
-              <Link href="/account" className="block rounded-xl px-3 py-3 text-base font-medium hover:bg-sand">
-                Sign in
+              <Link href={accountHref} className="block rounded-xl px-3 py-3 text-base font-medium hover:bg-sand">
+                {accountLabel}
               </Link>
             </li>
           </ul>

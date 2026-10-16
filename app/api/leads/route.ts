@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { supabaseSession } from "@/lib/supabase-session";
 
 const KINDS = ["quote", "consultation", "trial", "partner"] as const;
 type Kind = (typeof KINDS)[number];
@@ -42,7 +43,12 @@ export async function POST(req: Request) {
   const db = supabaseAdmin();
   if (!db) return NextResponse.json({ ref, saved: false });
 
+  // Link the request to the signed-in account, if any, so it shows on their dashboard.
+  const session = await supabaseSession();
+  const userId = session ? (await session.auth.getUser()).data.user?.id ?? null : null;
+
   const { error } = await db.from("leads").insert({
+    ...(userId ? { user_id: userId } : {}),
     reference: ref,
     kind,
     name,

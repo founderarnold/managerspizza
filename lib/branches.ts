@@ -37,3 +37,8 @@ export const BRANCHES: Branch[] = [
   { slug: "umingan-pangasinan", name: "Manager's Pizza Umingan", city: "Umingan", province: "Pangasinan", region: "Luzon", lat: 15.9286, lng: 120.8406 },
   { slug: "saguday-quirino", name: "Manager's Pizza Saguday", city: "Saguday", province: "Quirino", region: "Luzon", lat: 16.5394, lng: 121.5636 },
 ];
+
+export const branchName = (slug: string | null | undefined) => {
+  const b = BRANCHES.find((x) => x.slug === slug);
+  return b ? `${b.city}, ${b.province}` : "Not assigned";
+};
