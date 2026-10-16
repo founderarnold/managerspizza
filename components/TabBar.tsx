@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSignedIn } from "./useSignedIn";
 import { ClipboardList, Home, MapPin, ShoppingBag, User } from "lucide-react";
 
 const TABS = [
@@ -15,13 +14,11 @@ const TABS = [
 
 export function TabBar() {
   const pathname = usePathname();
-  const signedIn = useSignedIn();
-  const tabs = TABS.map((t) => (t.href === "/account" && !signedIn ? { ...t, href: "/login", label: "Sign in" } : t));
   return (
     <nav aria-label="Quick" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       <ul className="grid grid-cols-5">
-        {tabs.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href) || (href === "/login" && pathname.startsWith("/account"));
+        {TABS.map(({ href, label, icon: Icon }) => {
+          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <li key={href}>
               <Link

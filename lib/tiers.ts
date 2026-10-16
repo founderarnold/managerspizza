@@ -8,5 +8,3 @@ export const TIERS: { id: TierId; name: string; who: string }[] = [
   { id: "city", name: "City Reseller", who: "City resellers, dropshippers and affiliates" },
   { id: "barangay", name: "Barangay Retailer", who: "Barangay retailers and walk-in buyers" },
 ];
-
-export const tierName = (id: string | null | undefined) => TIERS.find((t) => t.id === id)?.name ?? "Not assigned yet";
