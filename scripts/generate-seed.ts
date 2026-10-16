@@ -17,11 +17,14 @@ PRICE_SHEETS.forEach((s, i) => {
   s.rows.forEach((r, j) => out.push(`insert into price_sheet_rows values (${q(s.slug)},${q(r.key)},${q(r.label)},${j}) on conflict do nothing;`));
 });
 
-// Base list (all branches, all tiers) plus one list per tier with the same temporary prices,
-// ready to be edited per tier. Branch-specific lists are added later the same way.
-const lists: [string, string | null][] = [["base", null], ...TIERS.map((t) => [t.id, t.id] as [string, string])];
-for (const [name, tier] of lists) {
-  out.push(`with l as (insert into price_lists (tier,name,effective_from,reason) values (${tier ? `${q(tier)}::price_tier` : "null"},${q(`${PRICE_LIST_SOURCE.title} (${name})`)},${q(PRICE_LIST_SOURCE.effective)},'Temporary list for all tiers from the QC depot price list') returning id)`);
+// Base list (all branches, all tiers) with the temporary prices, plus one empty list per tier:
+// a tier inherits the base price until a tier price is set in the admin dashboard.
+const base = `${PRICE_LIST_SOURCE.title} (base)`;
+const reason = "'Temporary list for all tiers from the QC depot price list'";
+for (const t of TIERS)
+  out.push(`insert into price_lists (tier,name,effective_from,reason) values (${q(t.id)}::price_tier,${q(`${PRICE_LIST_SOURCE.title} (${t.id})`)},${q(PRICE_LIST_SOURCE.effective)},${reason});`);
+{
+  out.push(`with l as (insert into price_lists (tier,name,effective_from,reason) values (null,${q(base)},${q(PRICE_LIST_SOURCE.effective)},${reason}) returning id)`);
   const vals: string[] = [];
   for (const s of PRICE_SHEETS)
     for (const r of s.rows)

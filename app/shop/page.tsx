@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Info } from "lucide-react";
-import { CATEGORIES, HANDLING_LABEL, PRICE_LIST_SOURCE, formatPeso, priceRange, sheetsInCategory } from "@/lib/catalog";
+import { CATEGORIES, HANDLING_LABEL, PRICE_LIST_SOURCE, formatPeso, priceRange } from "@/lib/catalog";
+import { priceSheets } from "@/lib/prices-db";
 import { PageHero } from "@/components/PageHero";
 import { PRICE_NOTE } from "@/lib/site";
 
@@ -11,7 +12,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/shop" },
 };
 
-export default function ShopPage() {
+export const revalidate = 300;
+
+export default async function ShopPage() {
+  const sheets = await priceSheets();
   return (
     <>
       <PageHero eyebrow="Shop supplies" title="Pizza supplies price list">
@@ -38,7 +42,7 @@ export default function ShopPage() {
             <h2 className="text-2xl font-bold md:text-3xl">{c.name}</h2>
             <p className="mt-1 text-muted">{c.blurb}</p>
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {sheetsInCategory(c.id).map((s) => {
+              {sheets.filter((s) => s.category === c.id).map((s) => {
                 const r = priceRange(s);
                 return (
                   <Link key={s.slug} href={`/shop/${s.slug}`} className="card group flex flex-col p-5 transition hover:-translate-y-0.5 hover:shadow-lift">

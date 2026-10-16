@@ -1,0 +1,39 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getViewer } from "@/lib/auth";
+import { RegisterForm } from "@/components/auth/AuthForms";
+import { TIERS } from "@/lib/tiers";
+
+export const metadata: Metadata = { title: "Create an account", robots: { index: false } };
+export const dynamic = "force-dynamic";
+
+export default async function RegisterPage() {
+  if (await getViewer()) redirect("/account");
+  return (
+    <div className="container-x py-10 md:py-14">
+      <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_320px]">
+        <div className="card p-6 sm:p-8">
+          <h1 className="text-3xl font-bold">Create your account</h1>
+          <p className="mt-2 text-muted">
+            After you sign up, Manager&apos;s Pizza checks your details and sets your price level and branch. You can sign in right away and send quotation requests while you wait.
+          </p>
+          <div className="mt-6">
+            <RegisterForm />
+          </div>
+        </div>
+        <aside className="card content-start p-5">
+          <h2 className="font-bold">Price levels</h2>
+          <p className="mt-1 text-sm text-muted">Your level is assigned by Manager&apos;s Pizza, not chosen at sign-up.</p>
+          <ul className="mt-4 grid gap-3 text-sm">
+            {TIERS.map((t) => (
+              <li key={t.id}>
+                <strong>{t.name}</strong>
+                <span className="block text-muted">{t.who}</span>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      </div>
+    </div>
+  );
+}

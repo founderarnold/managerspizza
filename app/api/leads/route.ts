@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
+import { getViewer } from "@/lib/auth";
 
 const KINDS = ["quote", "consultation", "trial", "partner"] as const;
 type Kind = (typeof KINDS)[number];
@@ -42,7 +43,12 @@ export async function POST(req: Request) {
   const db = supabaseAdmin();
   if (!db) return NextResponse.json({ ref, saved: false });
 
+  // Requests sent while signed in are linked to the account (and default to its branch).
+  const viewer = await getViewer().catch(() => null);
+  const branch = str(body.branch, 60) || viewer?.profile?.branch_slug || null;
+
   const { error } = await db.from("leads").insert({
+    user_id: viewer?.id ?? null,
     reference: ref,
     kind,
     name,
@@ -53,7 +59,7 @@ export async function POST(req: Request) {
     city: str(body.city, 80) || null,
     barangay: str(body.barangay, 80) || null,
     address: str(body.address, 300) || null,
-    branch_slug: str(body.branch, 60) || null,
+    branch_slug: branch,
     fulfillment: str(body.fulfillment, 40) || null,
     notes: str(body.notes, 2000) || null,
     items,

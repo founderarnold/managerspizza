@@ -39,4 +39,14 @@ Every page reads prices through `sheetFor(slug, { branch, tier })` in `lib/prici
 3. In Vercel → Settings → Domains add `www.managerspizza.com` (primary) and `managerspizza.com` (redirect to www).
 4. In Namecheap → Domain List → managerspizza.com → Advanced DNS, use the records Vercel shows for this project (Settings → Domains). At setup these were: **A** `@` → `216.198.79.1`, **A** `@` → `64.29.17.1`, **CNAME** `www` → `dcb33eee5d282416.vercel-dns-017.com.` Remove the old `@` A record (162.159.140.166) and the `www` CNAME to sites.ludicrous.cloud. Keep the email forwarding records (MX `eforward1`–`5.registrar-servers.com` and the SPF TXT).
 
-Form submissions land in the `leads` table (Supabase → Table editor) until the admin inbox is built.
+## Accounts and dashboards
+
+- **Sign in / Create an account** (`/login`, `/register`): email and password. The server creates the user already confirmed (no email is sent) with a `profiles` row in status `pending`.
+- **My account** (`/account`): status, price level, branch, the customer's requests with the branch's reply, profile and password. Approved accounts get **My price list** (`/account/prices`) for their branch and level.
+- **Branch dashboard** (`/branch`): for `branch_oic` / `staff` roles (and admins): the branch's requests (open by default), a request page to reply with a quoted amount and move it to another branch, and the branch's customers.
+- **Admin dashboard** (`/admin`): overview, all requests, accounts (approve, set level and branch, set a temporary password), price editor per branch × level, and staff roles.
+- First admin: put the email in the `ADMIN_EMAILS` Vercel env var (comma-separated), or add a `staff_roles` row with role `founder`.
+
+Prices live in Supabase (`price_lists` + `price_list_items`), looked up cell by cell: branch + level → level → branch → public list (branch and level both empty). Shop pages refresh every 5 minutes and right after an admin saves prices. Every price change and request update is written to `audit_log`.
+
+Run `supabase/migrations/*.sql` in order. Form submissions land in the `leads` table (Supabase → Table editor).
