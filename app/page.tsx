@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Handshake, MapPin, Snowflake, Store, Truck } from "lucide-react";
-import { formatPeso, priceRange } from "@/lib/catalog";
+import { HeroPrice } from "@/components/shop/HeroPrice";
 import { Catalog } from "@/components/shop/Catalog";
 import { priceSheets } from "@/lib/prices-db";
 import { getBranches } from "@/lib/branches-db";
@@ -47,13 +47,13 @@ export default async function Home() {
                   <li key={r.key} className="flex items-center justify-between py-2.5">
                     <span className="font-medium">{r.label}</span>
                     <span className="text-sm text-muted">
-                      12&quot; <strong className="ml-1 text-base text-ink tabular-nums">{formatPeso(r.prices[5]!)}</strong>
+                      12&quot; <HeroPrice sheet={classic.slug} row={r.key} column={classic.columns[5].key} />
                     </span>
                   </li>
                 ))}
               </ul>
               <Link href={`/shop/${classic.slug}`} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-red-deep hover:underline">
-                See all sizes from {formatPeso(priceRange(classic).min)} <ArrowRight size={15} aria-hidden />
+                See all sizes and order <ArrowRight size={15} aria-hidden />
               </Link>
             </div>
           </div>
