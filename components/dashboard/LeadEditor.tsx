@@ -3,13 +3,14 @@
 import { useActionState } from "react";
 import { updateLead } from "@/app/actions/dashboard";
 import type { FormState } from "@/app/actions/auth";
-import { BRANCHES } from "@/lib/branches";
+import { useAllBranches } from "@/components/BranchesProvider";
 import { LEAD_STATUSES, type Lead } from "@/lib/leads";
 import { FormMessage, SubmitButton } from "./ui";
 
 export function LeadEditor({ lead, canMove }: { lead: Lead; canMove: boolean }) {
   const [state, action] = useActionState<FormState, FormData>(updateLead.bind(null, lead.id), null);
-  const chosen = BRANCHES.find((b) => b.slug === lead.branch_slug);
+  const branches = useAllBranches().filter((b) => b.status !== "closed" || b.slug === lead.assigned_branch);
+  const chosen = useAllBranches().find((b) => b.slug === lead.branch_slug);
   return (
     <form action={action} className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -25,7 +26,7 @@ export function LeadEditor({ lead, canMove }: { lead: Lead; canMove: boolean }) 
           Handled by branch
           <select className="field" name="assignedBranch" defaultValue={lead.assigned_branch ?? ""} disabled={!canMove}>
             <option value="">{chosen ? `Customer's choice (${chosen.city})` : "Not assigned yet"}</option>
-            {BRANCHES.map((b) => (
+            {branches.map((b) => (
               <option key={b.slug} value={b.slug}>{b.city}, {b.province}</option>
             ))}
           </select>

@@ -19,7 +19,8 @@ const GROUPS: { title: string; links: [string, string][] }[] = [
     links: [
       ["Affiliate Program", "/partners/affiliate"],
       ["Dropshipper", "/partners/dropshipper"],
-      ["Distributor & Reseller", "/partners/distributor-reseller"],
+      ["Distributor", "/partners/distributor"],
+      ["Reseller & Retailer", "/partners/reseller-retailer"],
       ["Networking Company", "/partners/networking-company"],
       ["Supplier Accreditation", "/partners/supplier"],
     ],

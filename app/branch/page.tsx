@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ShieldCheck, Store } from "lucide-react";
 import { requireStaff, type Profile } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { BRANCHES } from "@/lib/branches";
+import { allBranches } from "@/lib/branches-db";
 import { TIERS } from "@/lib/tiers";
 import type { Lead } from "@/lib/leads";
 import { AccountStatusBadge, Stat } from "@/components/dashboard/Badges";
@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function BranchDashboard({ searchParams }: { searchParams: Promise<{ b?: string; status?: string }> }) {
   const v = await requireStaff("/branch");
   const sp = await searchParams;
+  const BRANCHES = (await allBranches()).filter((b) => b.status !== "closed");
   const mine = v.isAdmin ? BRANCHES : BRANCHES.filter((b) => v.staffBranches?.includes(b.slug));
   const branch = mine.find((b) => b.slug === sp.b) ?? mine[0];
   const status = sp.status ?? "open";

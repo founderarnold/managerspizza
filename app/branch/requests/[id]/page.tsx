@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, MessageSquare, Phone } from "lucide-react";
 import { canSeeBranch, requireStaff } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { BRANCHES } from "@/lib/branches";
+import { allBranches } from "@/lib/branches-db";
 import { TIERS } from "@/lib/tiers";
 import { formatPeso } from "@/lib/catalog";
 import { KIND_LABEL, formatDate, leadBranch, type Lead } from "@/lib/leads";
@@ -25,6 +25,7 @@ const FULFILLMENT: Record<string, string> = {
 
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const BRANCHES = await allBranches();
   const v = await requireStaff(`/branch/requests/${id}`);
   const db = supabaseAdmin()!;
   const { data } = await db.from("leads").select("*").eq("id", id).maybeSingle();

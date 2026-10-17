@@ -3,7 +3,7 @@ import Image from "next/image";
 import { ArrowRight, Boxes, ChefHat, Handshake, MapPin, Package, Pizza, Snowflake, Store, Truck, Wheat } from "lucide-react";
 import { CATEGORIES, formatPeso, priceRange } from "@/lib/catalog";
 import { priceSheets } from "@/lib/prices-db";
-import { BRANCHES } from "@/lib/branches";
+import { publicBranches } from "@/lib/branches-db";
 import logoYellow from "@/public/brand/logo-full-on-yellow.png";
 
 const CAT_ICON = { "ready-to-cook": Pizza, "dough-crust": Wheat, "cheese-sauce-toppings": ChefHat, "boxes-packaging": Boxes, equipment: Package } as const;
@@ -11,7 +11,8 @@ const CAT_ICON = { "ready-to-cook": Pizza, "dough-crust": Wheat, "cheese-sauce-t
 export const revalidate = 300;
 
 export default async function Home() {
-  const all = await priceSheets();
+  const [all, branches] = await Promise.all([priceSheets(), publicBranches()]);
+  const openCount = branches.filter((b) => b.status !== "opening_soon").length;
   const classic = all[0];
   return (
     <>
@@ -19,7 +20,7 @@ export default async function Home() {
         <div className="container-x grid items-center gap-10 py-14 md:py-20 lg:grid-cols-[1.15fr_0.85fr]">
           <div>
             <p className="inline-flex items-center gap-2 rounded-full bg-ink px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-yellow">
-              <MapPin size={13} aria-hidden /> {BRANCHES.length} branches, Luzon to Mindanao
+              <MapPin size={13} aria-hidden /> {openCount} branches, Luzon to Mindanao
             </p>
             <h1 className="mt-5 text-[40px] font-extrabold leading-[1.02] md:text-6xl">
               Everything your pizza business needs, at depot prices.
@@ -116,7 +117,7 @@ export default async function Home() {
           {[
             { icon: Store, title: "Start a Pizza Business", text: "Get help choosing equipment, supplies and a starting menu, or try our pilot Pizza Trial / Pahiram.", href: "/start-a-business", cta: "See how to start" },
             { icon: Handshake, title: "Partner programs", text: "Affiliates, dropshippers, distributors, resellers, networking companies and suppliers.", href: "/partners", cta: "Explore programs" },
-            { icon: Truck, title: "Branches near you", text: "Eleven initial branches from Pangasinan and Quirino to Cagayan de Oro, with more opening soon.", href: "/branches", cta: "Open the map" },
+            { icon: Truck, title: "Branches near you", text: `${openCount} initial branches from Pangasinan and Quirino to Tacloban and Cagayan de Oro, with more opening soon.`, href: "/branches", cta: "Open the map" },
           ].map(({ icon: Icon, title, text, href, cta }) => (
             <Link key={href} href={href} className="card group p-6 transition hover:shadow-lift">
               <Icon size={26} className="text-brand-red-deep" aria-hidden />

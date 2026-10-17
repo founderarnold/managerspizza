@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { canSeeBranch, getViewer, type Role } from "@/lib/auth";
-import { BRANCHES } from "@/lib/branches";
+import { REGIONS, type BranchStatus } from "@/lib/branches";
+import { allBranches } from "@/lib/branches-db";
+import { BUSINESS_TYPES } from "@/lib/site";
 import { TIERS, type TierId } from "@/lib/tiers";
 import { PRICE_SHEETS } from "@/lib/catalog";
 import { LEAD_STATUSES, type LeadStatus } from "@/lib/leads";
@@ -11,7 +13,7 @@ import { currentLists } from "@/lib/prices-db";
 import type { FormState } from "./auth";
 
 const str = (fd: FormData, k: string, max = 500) => String(fd.get(k) ?? "").trim().slice(0, max);
-const isBranch = (s: string) => BRANCHES.some((b) => b.slug === s);
+const isBranch = async (s: string) => (await allBranches()).some((b) => b.slug === s);
 const isTier = (s: string): s is TierId => TIERS.some((t) => t.id === s);
 const DENIED: FormState = { error: "You don't have access to do that." };
 
@@ -29,7 +31,7 @@ export async function updateLead(id: string, _: FormState, fd: FormData): Promis
   const status = str(fd, "status") as LeadStatus;
   if (!LEAD_STATUSES.some((s) => s.id === status)) return { error: "Please choose a status." };
   const assigned = str(fd, "assignedBranch", 60);
-  if (assigned && !isBranch(assigned)) return { error: "Please choose a branch from the list." };
+  if (assigned && !(await isBranch(assigned))) return { error: "Please choose a branch from the list." };
   // Moving a request to another branch: admins, or the OIC of the branch it is in now.
   const current = lead.assigned_branch ?? lead.branch_slug;
   const isOic = v.roles.some((r) => r.role === "branch_oic" && r.branch_slug === current);
@@ -67,7 +69,7 @@ export async function updateAccount(id: string, _: FormState, fd: FormData): Pro
   const branch = str(fd, "branch", 60);
   if (!isTier(tier)) return { error: "Please choose a price level." };
   if (!["pending", "approved", "suspended"].includes(status)) return { error: "Please choose a status." };
-  if (branch && !isBranch(branch)) return { error: "Please choose a branch from the list." };
+  if (branch && !(await isBranch(branch))) return { error: "Please choose a branch from the list." };
   const after: Record<string, unknown> = {
     tier,
     status,
@@ -110,7 +112,7 @@ export async function addStaff(_: FormState, fd: FormData): Promise<FormState> {
   if (!GRANTABLE.includes(role) && !(role === "founder" && v.roles.some((r) => r.role === "founder")))
     return { error: "Please choose a role." };
   const needsBranch = role === "branch_oic" || role === "staff";
-  if (needsBranch && !isBranch(branch)) return { error: "Branch OIC and branch staff need a branch." };
+  if (needsBranch && !(await isBranch(branch))) return { error: "Branch OIC and branch staff need a branch." };
   const { data: p } = await db.from("profiles").select("id").eq("email", email).maybeSingle();
   if (!p) return { error: "No account uses that email yet. Ask them to create an account first (Sign in → Create an account), then add them here." };
   const { error } = await db.from("staff_roles").insert({ user_id: p.id, role, branch_slug: needsBranch || branch ? branch || null : null });
@@ -141,7 +143,7 @@ export async function savePrices(_: FormState, fd: FormData): Promise<FormState>
   const tierRaw = str(fd, "tier") || null;
   const sheet = PRICE_SHEETS.find((s) => s.slug === str(fd, "sheet"));
   const reason = str(fd, "reason", 300);
-  if (branch && !isBranch(branch)) return { error: "Unknown branch." };
+  if (branch && !(await isBranch(branch))) return { error: "Unknown branch." };
   if (tierRaw && !isTier(tierRaw)) return { error: "Unknown price level." };
   const tier = tierRaw as TierId | null;
   if (!sheet) return { error: "Unknown price sheet." };
@@ -159,7 +161,7 @@ export async function savePrices(_: FormState, fd: FormData): Promise<FormState>
 
   let listId = (await currentLists())?.get(`${branch}|${tier}`);
   if (!listId) {
-    const branchName = branch ? BRANCHES.find((b) => b.slug === branch)!.city : "All branches";
+    const branchName = branch ? (await allBranches()).find((b) => b.slug === branch)!.city : "All branches";
     const tierName = tier ? TIERS.find((t) => t.id === tier)!.name : "All levels";
     const { data, error } = await db
       .from("price_lists")
@@ -190,4 +192,117 @@ export async function savePrices(_: FormState, fd: FormData): Promise<FormState>
   await audit(v.id, "save_prices", "price_list_items", `${branch ?? "all"}:${tier ?? "all"}:${sheet.slug}`, before, items, reason);
   revalidatePath("/", "layout");
   return { ok: `Saved ${items.length} price${items.length === 1 ? "" : "s"} for ${sheet.name}.` };
+}
+
+const PH_MOBILE = /^(\+?63|0)9\d{2}[\s-]?\d{3}[\s-]?\d{4}$/;
+
+/** Admin creates an approved account with a level and branch (distributors, resellers, retailers…). */
+export async function createAccount(_: FormState, fd: FormData): Promise<FormState> {
+  const v = await getViewer();
+  const db = supabaseAdmin();
+  if (!v?.isAdmin || !db) return DENIED;
+  const full_name = str(fd, "name", 120);
+  const mobile = str(fd, "mobile", 30);
+  const email = str(fd, "email", 160).toLowerCase();
+  const password = String(fd.get("password") ?? "");
+  const tier = str(fd, "tier");
+  const branch = str(fd, "branch", 60);
+  const businessType = str(fd, "businessType", 40);
+  if (!full_name) return { error: "Please enter the full name." };
+  if (!PH_MOBILE.test(mobile.replace(/\s+/g, " "))) return { error: "Please enter a Philippine mobile number, e.g. 0917 123 4567." };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Please enter a valid email address." };
+  if (password.length < 8) return { error: "The temporary password needs at least 8 characters." };
+  if (!isTier(tier)) return { error: "Please choose a price level." };
+  if (branch && !(await isBranch(branch))) return { error: "Please choose a branch from the list." };
+  if (businessType && !BUSINESS_TYPES.some((t) => t.id === businessType)) return { error: "Please choose a type." };
+
+  const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name } });
+  if (error || !data.user) {
+    const taken = /already|exists|registered/i.test(error?.message ?? "");
+    return { error: taken ? "An account with this email already exists. Find it in the list below and edit it." : "We couldn't create the account. Please try again." };
+  }
+  const now = new Date().toISOString();
+  const { error: pErr } = await db.from("profiles").insert({
+    id: data.user.id,
+    email,
+    full_name,
+    mobile,
+    business_name: str(fd, "businessName", 160) || null,
+    business_type: businessType || null,
+    province: str(fd, "province", 80) || null,
+    city: str(fd, "city", 80) || null,
+    branch_slug: branch || null,
+    tier,
+    status: "approved",
+    approved_at: now,
+    approved_by: v.id,
+  });
+  if (pErr) {
+    await db.auth.admin.deleteUser(data.user.id);
+    return { error: "We couldn't create the account. Please try again." };
+  }
+  await audit(v.id, "create_account", "profiles", email, null, { tier, branch, businessType });
+  revalidatePath("/admin", "layout");
+  return { ok: `Account created for ${full_name}. They can now sign in with ${email} and the temporary password.` };
+}
+
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+/** Add a branch (slug null) or update one. */
+export async function saveBranch(slug: string | null, _: FormState, fd: FormData): Promise<FormState> {
+  const v = await getViewer();
+  const db = supabaseAdmin();
+  if (!v?.isAdmin || !db) return DENIED;
+  const city = str(fd, "city", 80);
+  const province = str(fd, "province", 80);
+  const name = str(fd, "name", 120);
+  const region = str(fd, "region", 20);
+  const status = str(fd, "status", 20) as BranchStatus;
+  const lat = Number(str(fd, "lat", 20));
+  const lng = Number(str(fd, "lng", 20));
+  if (!city || !province || !name) return { error: "Please fill in the city, province and branch name." };
+  if (!REGIONS.includes(region as (typeof REGIONS)[number])) return { error: "Please choose Luzon, Visayas or Mindanao." };
+  if (!["open", "opening_soon", "closed"].includes(status)) return { error: "Please choose a status." };
+  // The Philippines spans roughly 4.5–21.5° N and 116–127° E.
+  if (!(lat >= 4 && lat <= 22) || !(lng >= 116 && lng <= 128)) return { error: "Please check the map position: latitude 4 to 22 and longitude 116 to 128 for the Philippines." };
+  const phones = str(fd, "phones", 200)
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const row = {
+    name,
+    city,
+    province,
+    region,
+    address: str(fd, "address", 300) || null,
+    phones: phones.length ? phones : null,
+    lat,
+    lng,
+    is_main: fd.get("isMain") === "on",
+    status,
+  };
+
+  if (slug) {
+    const { data: before } = await db.from("branches").select("*").eq("slug", slug).maybeSingle();
+    if (!before) return { error: "Branch not found." };
+    const { error } = await db.from("branches").update(row).eq("slug", slug);
+    if (error) return { error: "We couldn't save the branch. Please try again." };
+    await audit(v.id, "update", "branches", slug, before, row);
+  } else {
+    const base = slugify(city.replace(/^city of /i, "")) || "branch";
+    const taken = new Set((await allBranches()).map((b) => b.slug));
+    let newSlug = base;
+    for (let i = 2; taken.has(newSlug); i++) newSlug = `${base}-${i}`;
+    const { error } = await db.from("branches").insert({ ...row, slug: newSlug });
+    if (error) return { error: "We couldn't add the branch. Please try again." };
+    await audit(v.id, "create", "branches", newSlug, null, row);
+  }
+  revalidatePath("/", "layout");
+  return { ok: slug ? "Branch saved." : `Branch added: ${name}. It now shows on the map and in every branch list.` };
 }

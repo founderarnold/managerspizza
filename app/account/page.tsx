@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BadgeCheck, Building2, ClipboardList, Clock, LayoutDashboard, LogOut, ShieldCheck, Tag } from "lucide-react";
 import { requireViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { BRANCHES } from "@/lib/branches";
+import { allBranches } from "@/lib/branches-db";
 import { TIERS } from "@/lib/tiers";
 import { formatPeso } from "@/lib/catalog";
 import { KIND_LABEL, formatDate, type Lead } from "@/lib/leads";
@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const v = await requireViewer("/account");
   const { welcome } = await searchParams;
+  const BRANCHES = await allBranches();
   const p = v.profile;
   const { data } = await supabaseAdmin()!.from("leads").select("*").eq("user_id", v.id).order("created_at", { ascending: false }).limit(50);
   const leads = (data ?? []) as Lead[];

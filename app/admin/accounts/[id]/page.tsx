@@ -4,8 +4,9 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, MessageSquare, Phone } from "lucide-react";
 import { requireAdmin, ROLE_LABEL, type Profile, type StaffRole } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { BRANCHES } from "@/lib/branches";
+import { allBranches } from "@/lib/branches-db";
 import { formatDate, type Lead } from "@/lib/leads";
+import { businessTypeLabel } from "@/lib/site";
 import { AccountStatusBadge } from "@/components/dashboard/Badges";
 import { AccountEditor, TempPasswordForm } from "@/components/dashboard/AdminForms";
 import { LeadList } from "@/components/dashboard/LeadList";
@@ -13,10 +14,11 @@ import { LeadList } from "@/components/dashboard/LeadList";
 export const metadata: Metadata = { title: "Account", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-const TYPE: Record<string, string> = { new: "New entrepreneur", store: "Existing pizza store", reseller: "Reseller", distributor: "Distributor", other: "Other" };
+
 
 export default async function AccountAdminPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const BRANCHES = await allBranches();
   await requireAdmin(`/admin/accounts/${id}`);
   const db = supabaseAdmin()!;
   const [{ data }, { data: leads }, { data: roles }] = await Promise.all([
@@ -50,7 +52,7 @@ export default async function AccountAdminPage({ params }: { params: Promise<{ i
               {[
                 ["Mobile", p.mobile],
                 ["Business name", p.business_name],
-                ["Business type", p.business_type ? TYPE[p.business_type] ?? p.business_type : null],
+                ["Business type", p.business_type ? businessTypeLabel(p.business_type) : null],
                 ["Location", [p.barangay, p.city, p.province].filter(Boolean).join(", ")],
                 ["Address", p.address],
               ].map(([k, val]) => (

@@ -1,10 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { addStaff, savePrices, setTemporaryPassword, updateAccount } from "@/app/actions/dashboard";
+import { addStaff, createAccount, saveBranch, savePrices, setTemporaryPassword, updateAccount } from "@/app/actions/dashboard";
 import type { FormState } from "@/app/actions/auth";
 import type { Profile } from "@/lib/auth";
-import { BRANCHES } from "@/lib/branches";
+import { BRANCH_STATUS_LABEL, REGIONS, type Branch } from "@/lib/branches";
+import { BUSINESS_TYPES } from "@/lib/site";
+import { useAllBranches } from "@/components/BranchesProvider";
 import { TIERS } from "@/lib/tiers";
 import type { PriceSheet } from "@/lib/catalog";
 import { formatPeso } from "@/lib/catalog";
@@ -12,6 +14,7 @@ import { FormMessage, SubmitButton } from "./ui";
 
 export function AccountEditor({ profile }: { profile: Profile }) {
   const [state, action] = useActionState<FormState, FormData>(updateAccount.bind(null, profile.id), null);
+  const BRANCHES = useAllBranches();
   return (
     <form action={action} className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -71,6 +74,7 @@ export function TempPasswordForm({ id }: { id: string }) {
 
 export function AddStaffForm({ canGrantFounder }: { canGrantFounder: boolean }) {
   const [state, action] = useActionState<FormState, FormData>(addStaff, null);
+  const BRANCHES = useAllBranches();
   return (
     <form action={action} className="grid gap-4">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -182,6 +186,142 @@ export function PriceEditor({
       <FormMessage state={state} />
       <div>
         <SubmitButton>Save prices</SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+/** Admin creates an account directly (e.g. a new distributor, reseller or retailer). */
+export function CreateAccountForm() {
+  const [state, action] = useActionState<FormState, FormData>(createAccount, null);
+  const branches = useAllBranches().filter((b) => b.status !== "closed");
+  return (
+    <form action={action} className="grid gap-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="label">
+          Full name *
+          <input className="field" name="name" required />
+        </label>
+        <label className="label">
+          Mobile number *
+          <input className="field" name="mobile" required inputMode="tel" placeholder="0917 123 4567" />
+        </label>
+        <label className="label">
+          Email (used to sign in) *
+          <input className="field" name="email" type="email" required autoComplete="off" />
+        </label>
+        <label className="label">
+          Business name
+          <input className="field" name="businessName" />
+        </label>
+        <label className="label">
+          Type
+          <select className="field" name="businessType" defaultValue="distributor">
+            {BUSINESS_TYPES.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="label">
+          Price level *
+          <select className="field" name="tier" defaultValue="provincial">
+            {TIERS.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="label">
+          Branch
+          <select className="field" name="branch" defaultValue="">
+            <option value="">No branch yet</option>
+            {branches.map((b) => (
+              <option key={b.slug} value={b.slug}>{b.city}, {b.province}</option>
+            ))}
+          </select>
+        </label>
+        <label className="label">
+          Province
+          <input className="field" name="province" />
+        </label>
+        <label className="label">
+          City / municipality
+          <input className="field" name="city" />
+        </label>
+        <label className="label sm:col-span-2 lg:col-span-1">
+          Temporary password * <span className="font-normal text-muted">(8+ characters)</span>
+          <input className="field" name="password" type="text" minLength={8} required autoComplete="off" />
+        </label>
+      </div>
+      <p className="text-xs text-muted">The account is created already approved. Give the email and temporary password to the person and ask them to change the password under My account.</p>
+      <FormMessage state={state} />
+      <div>
+        <SubmitButton>Create account</SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+/** Add a branch (branch = undefined) or edit one. */
+export function BranchForm({ branch }: { branch?: Branch }) {
+  const [state, action] = useActionState<FormState, FormData>(saveBranch.bind(null, branch?.slug ?? null), null);
+  const b = branch;
+  return (
+    <form action={action} className="grid gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="label">
+          City / municipality *
+          <input className="field" name="city" required defaultValue={b?.city ?? ""} placeholder="e.g. Tacloban City" />
+        </label>
+        <label className="label">
+          Province *
+          <input className="field" name="province" required defaultValue={b?.province ?? ""} placeholder="e.g. Leyte" />
+        </label>
+        <label className="label">
+          Branch name *
+          <input className="field" name="name" required defaultValue={b?.name ?? ""} placeholder="e.g. Manager's Pizza Tacloban" />
+        </label>
+        <label className="label">
+          Island group *
+          <select className="field" name="region" defaultValue={b?.region ?? "Luzon"}>
+            {REGIONS.map((r) => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </label>
+        <label className="label sm:col-span-2">
+          Street address
+          <input className="field" name="address" defaultValue={b?.address ?? ""} placeholder="Leave empty until it is published" />
+        </label>
+        <label className="label sm:col-span-2">
+          Phone numbers <span className="font-normal text-muted">(separate with commas)</span>
+          <input className="field" name="phones" defaultValue={b?.phones?.join(", ") ?? ""} placeholder="0917 123 4567, 0999 123 4567" />
+        </label>
+        <label className="label">
+          Map latitude *
+          <input className="field" name="lat" required inputMode="decimal" defaultValue={b?.lat ?? ""} placeholder="e.g. 11.2444" />
+        </label>
+        <label className="label">
+          Map longitude *
+          <input className="field" name="lng" required inputMode="decimal" defaultValue={b?.lng ?? ""} placeholder="e.g. 125.0039" />
+        </label>
+        <p className="text-xs text-muted sm:col-span-2">
+          To get the map position: open Google Maps, right-click the branch location, and click the numbers at the top of the menu to copy them (latitude, longitude).
+        </p>
+        <label className="label">
+          Status
+          <select className="field" name="status" defaultValue={b?.status ?? "open"}>
+            {(Object.keys(BRANCH_STATUS_LABEL) as (keyof typeof BRANCH_STATUS_LABEL)[]).map((s) => (
+              <option key={s} value={s}>{BRANCH_STATUS_LABEL[s]}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-3 self-end pb-3 text-sm font-medium">
+          <input type="checkbox" name="isMain" defaultChecked={!!b?.hq} className="h-5 w-5 accent-[#B80000]" /> Main depot
+        </label>
+      </div>
+      <FormMessage state={state} />
+      <div>
+        <SubmitButton>{b ? "Save branch" : "Add branch"}</SubmitButton>
       </div>
     </form>
   );

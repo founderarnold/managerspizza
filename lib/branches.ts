@@ -10,8 +10,17 @@ export interface Branch {
   address?: string;
   phones?: string[];
   hq?: boolean;
+  /** open (default), opening_soon, or closed (hidden from the public). */
+  status?: BranchStatus;
 }
 
+export type BranchStatus = "open" | "opening_soon" | "closed";
+export const BRANCH_STATUS_LABEL: Record<BranchStatus, string> = { open: "Open", opening_soon: "Opening soon", closed: "Closed" };
+export const REGIONS: Branch["region"][] = ["Luzon", "Visayas", "Mindanao"];
+
+// The starting list. Live branches are kept in Supabase (admins add and edit them in the
+// admin dashboard); this list is the fallback when the database is not connected and the
+// source for supabase/seed.sql.
 // Pins for branches without a published street address sit at the city/town centre.
 export const BRANCHES: Branch[] = [
   {
@@ -32,7 +41,7 @@ export const BRANCHES: Branch[] = [
   { slug: "calamba-laguna", name: "Manager's Pizza Calamba", city: "Calamba City", province: "Laguna", region: "Luzon", lat: 14.2117, lng: 121.1653 },
   { slug: "naga-camarines-sur", name: "Manager's Pizza Naga", city: "Naga City", province: "Camarines Sur", region: "Luzon", lat: 13.6218, lng: 123.1948 },
   { slug: "cagayan-de-oro", name: "Manager's Pizza Cagayan de Oro", city: "Cagayan de Oro City", province: "Misamis Oriental", region: "Mindanao", lat: 8.4542, lng: 124.6319 },
-  { slug: "tangub-city", name: "Manager's Pizza Tangub", city: "Tangub City", province: "Misamis Occidental", region: "Mindanao", lat: 8.0617, lng: 123.75 },
+  { slug: "tacloban-city", name: "Manager's Pizza Tacloban", city: "Tacloban City", province: "Leyte", region: "Visayas", lat: 11.2444, lng: 125.0039 },
   { slug: "montalban-rizal", name: "Manager's Pizza Montalban", city: "Montalban (Rodriguez)", province: "Rizal", region: "Luzon", lat: 14.7339, lng: 121.1437 },
   { slug: "umingan-pangasinan", name: "Manager's Pizza Umingan", city: "Umingan", province: "Pangasinan", region: "Luzon", lat: 15.9286, lng: 120.8406 },
   { slug: "saguday-quirino", name: "Manager's Pizza Saguday", city: "Saguday", province: "Quirino", region: "Luzon", lat: 16.5394, lng: 121.5636 },

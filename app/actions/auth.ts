@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getViewer } from "@/lib/auth";
-import { BRANCHES } from "@/lib/branches";
+import { allBranches } from "@/lib/branches-db";
 
 export type FormState = { error?: string; ok?: string } | null;
 
@@ -47,7 +47,7 @@ export async function register(_: FormState, fd: FormData): Promise<FormState> {
   if (password.length < 8) return { error: "Your password needs at least 8 characters." };
   if (password !== String(fd.get("password2") ?? "")) return { error: "The two passwords don't match." };
   if (fd.get("consent") !== "on") return { error: "Please agree to the Privacy Notice to create an account." };
-  if (branch && !BRANCHES.some((b) => b.slug === branch)) return { error: "Please choose a branch from the list." };
+  if (branch && !(await allBranches()).some((b) => b.slug === branch && b.status !== "closed")) return { error: "Please choose a branch from the list." };
 
   // Created already confirmed, so no confirmation email is needed. An admin approves the account.
   const { data, error } = await db.auth.admin.createUser({

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { register, signIn, type FormState } from "@/app/actions/auth";
-import { BRANCHES } from "@/lib/branches";
+import { BUSINESS_TYPES } from "@/lib/site";
+import { useOpenBranches } from "@/components/BranchesProvider";
 import { FormMessage, SubmitButton } from "@/components/dashboard/ui";
 
 export function SignInForm({ next }: { next: string }) {
@@ -33,6 +34,7 @@ export function SignInForm({ next }: { next: string }) {
 
 export function RegisterForm() {
   const [state, action] = useActionState<FormState, FormData>(register, null);
+  const branches = useOpenBranches();
   return (
     <form action={action} className="grid gap-5">
       <fieldset className="grid gap-4 sm:grid-cols-2">
@@ -67,11 +69,9 @@ export function RegisterForm() {
         <label className="label">
           I am a
           <select className="field" name="businessType" defaultValue="new">
-            <option value="new">New entrepreneur</option>
-            <option value="store">Existing pizza store</option>
-            <option value="reseller">Reseller</option>
-            <option value="distributor">Distributor</option>
-            <option value="other">Other</option>
+            {BUSINESS_TYPES.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
           </select>
         </label>
         <label className="label">
@@ -90,7 +90,7 @@ export function RegisterForm() {
           Nearest branch
           <select className="field" name="branch" defaultValue="">
             <option value="">Not sure yet</option>
-            {BRANCHES.map((b) => (
+            {branches.map((b) => (
               <option key={b.slug} value={b.slug}>
                 {b.city}, {b.province}
               </option>

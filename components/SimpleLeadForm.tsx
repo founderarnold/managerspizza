@@ -64,7 +64,7 @@ export function SimpleLeadForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="label">
             Territory requested
-            <input className="field" name="territory" placeholder="e.g. Province of Bulacan" />
+            <input className="field" name="territory" placeholder={program === "reseller-retailer" ? "e.g. Barangay San Jose, Tacloban City" : "e.g. Province of Bulacan"} />
           </label>
           <label className="label">
             Years operating

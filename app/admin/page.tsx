@@ -3,7 +3,8 @@ import Link from "next/link";
 import { ChevronRight, Trash2 } from "lucide-react";
 import { requireAdmin, ROLE_LABEL, type Profile, type StaffRole } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { BRANCHES } from "@/lib/branches";
+import { BRANCH_STATUS_LABEL } from "@/lib/branches";
+import { allBranches } from "@/lib/branches-db";
 import { TIERS, type TierId } from "@/lib/tiers";
 import { PRICE_SHEETS } from "@/lib/catalog";
 import { formatDate, leadBranch, type Lead } from "@/lib/leads";
@@ -11,7 +12,7 @@ import { cellKey, chainFor, currentLists, layersFor, listItems, resolveCell } fr
 import { removeStaff } from "@/app/actions/dashboard";
 import { AccountStatusBadge, Stat } from "@/components/dashboard/Badges";
 import { LeadList, OPEN_STATUSES, StatusFilter } from "@/components/dashboard/LeadList";
-import { AddStaffForm, PriceEditor } from "@/components/dashboard/AdminForms";
+import { AddStaffForm, BranchForm, CreateAccountForm, PriceEditor } from "@/components/dashboard/AdminForms";
 
 export const metadata: Metadata = { title: "Admin dashboard", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ const TABS = [
   { id: "overview", label: "Overview" },
   { id: "requests", label: "Requests" },
   { id: "accounts", label: "Accounts" },
+  { id: "branches", label: "Branches" },
   { id: "prices", label: "Prices" },
   { id: "staff", label: "Staff" },
 ];
@@ -54,6 +56,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {tab === "overview" && <Overview />}
         {tab === "requests" && <Requests sp={sp} />}
         {tab === "accounts" && <Accounts sp={sp} />}
+        {tab === "branches" && <Branches />}
         {tab === "prices" && <Prices sp={sp} />}
         {tab === "staff" && <Staff myId={v.id} canGrantFounder={v.roles.some((r) => r.role === "founder")} />}
       </div>
@@ -62,6 +65,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 }
 
 async function Overview() {
+  const BRANCHES = await allBranches();
   const db = supabaseAdmin()!;
   const [{ data: leads }, { data: profiles }] = await Promise.all([
     db.from("leads").select("status,branch_slug,assigned_branch,created_at").limit(10000),
@@ -122,6 +126,7 @@ async function Overview() {
 }
 
 async function Requests({ sp }: { sp: SP }) {
+  const BRANCHES = await allBranches();
   const db = supabaseAdmin()!;
   const status = sp.status ?? "open";
   const b = sp.b ?? "all";
@@ -160,6 +165,7 @@ async function Requests({ sp }: { sp: SP }) {
 }
 
 async function Accounts({ sp }: { sp: SP }) {
+  const BRANCHES = await allBranches();
   const db = supabaseAdmin()!;
   const status = sp.status ?? "all";
   let q = db.from("profiles").select("*").order("created_at", { ascending: false }).limit(500);
@@ -178,6 +184,15 @@ async function Accounts({ sp }: { sp: SP }) {
   ];
   return (
     <div className="grid gap-4">
+      <details className="card p-5" open={rows.length === 0}>
+        <summary className="cursor-pointer text-lg font-bold">+ Create an account (distributor, reseller, retailer…)</summary>
+        <p className="mt-2 text-sm text-muted">
+          For partners you have already approved, for example a new Provincial Distributor or a Barangay Retailer. People can also sign up themselves on the website; their accounts appear below as &quot;Waiting for approval&quot;.
+        </p>
+        <div className="mt-4">
+          <CreateAccountForm />
+        </div>
+      </details>
       <form className="flex flex-wrap items-end gap-3" action="/admin">
         <input type="hidden" name="tab" value="accounts" />
         <input type="hidden" name="status" value={status} />
@@ -228,6 +243,7 @@ async function Accounts({ sp }: { sp: SP }) {
 }
 
 async function Prices({ sp }: { sp: SP }) {
+  const BRANCHES = await allBranches();
   const branch = BRANCHES.some((b) => b.slug === sp.branch) ? sp.branch! : "";
   const tier = TIERS.some((t) => t.id === sp.tier) ? (sp.tier as TierId) : "";
   const sheet = PRICE_SHEETS.find((s) => s.slug === sp.sheet) ?? PRICE_SHEETS[0];
@@ -295,6 +311,7 @@ async function Prices({ sp }: { sp: SP }) {
 }
 
 async function Staff({ myId, canGrantFounder }: { myId: string; canGrantFounder: boolean }) {
+  const BRANCHES = await allBranches();
   const db = supabaseAdmin()!;
   const { data: roles } = await db.from("staff_roles").select("*").order("role");
   const R = (roles ?? []) as StaffRole[];
@@ -354,6 +371,51 @@ async function Staff({ myId, canGrantFounder }: { myId: string; canGrantFounder:
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+async function Branches() {
+  const BRANCHES = await allBranches();
+  return (
+    <div className="grid gap-6">
+      <details className="card p-5">
+        <summary className="cursor-pointer text-lg font-bold">+ Add a branch</summary>
+        <p className="mt-2 text-sm text-muted">New branches appear on the map, in every &quot;nearest branch&quot; list and in the price editor. Use &quot;Opening soon&quot; to announce a branch before it opens.</p>
+        <div className="mt-4">
+          <BranchForm />
+        </div>
+      </details>
+      <div className="card overflow-x-auto">
+        <table className="w-full min-w-[620px] text-sm">
+          <thead>
+            <tr className="border-b border-line text-left text-muted">
+              <th className="px-4 py-3 font-medium">Branch</th>
+              <th className="px-4 py-3 font-medium">Province</th>
+              <th className="px-4 py-3 font-medium">Island group</th>
+              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {BRANCHES.map((b) => (
+              <tr key={b.slug} className="border-b border-line/60 last:border-0">
+                <td className="px-4 py-3">
+                  <span className="font-medium">{b.city}</span>
+                  {b.hq && <span className="chip ml-2">Main depot</span>}
+                  <span className="block text-xs text-muted">{b.name}</span>
+                </td>
+                <td className="px-4 py-3">{b.province}</td>
+                <td className="px-4 py-3">{b.region}</td>
+                <td className="px-4 py-3">{BRANCH_STATUS_LABEL[b.status ?? "open"]}</td>
+                <td className="px-4 py-3 text-right">
+                  <Link className="font-semibold text-brand-red-deep" href={`/admin/branches/${b.slug}`}>Edit</Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

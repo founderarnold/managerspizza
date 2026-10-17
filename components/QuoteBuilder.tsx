@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { formatPeso } from "@/lib/catalog";
-import { PRICE_NOTE } from "@/lib/site";
+import { BUSINESS_TYPES, PRICE_NOTE } from "@/lib/site";
 import { useQuote } from "./QuoteProvider";
 import { LeadForm } from "./LeadForm";
 import { ConsentFields, ContactFields } from "./ContactFields";
@@ -84,11 +84,9 @@ export function QuoteBuilder() {
               <label className="label">
                 I am a
                 <select className="field" name="businessType" defaultValue="new">
-                  <option value="new">New entrepreneur</option>
-                  <option value="store">Existing pizza store</option>
-                  <option value="reseller">Reseller</option>
-                  <option value="distributor">Distributor</option>
-                  <option value="other">Other</option>
+                  {BUSINESS_TYPES.map((t) => (
+                    <option key={t.id} value={t.id}>{t.label}</option>
+                  ))}
                 </select>
               </label>
               <label className="label">

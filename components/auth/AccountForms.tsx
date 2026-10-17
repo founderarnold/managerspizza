@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { changePassword, updateProfile, type FormState } from "@/app/actions/auth";
 import { FormMessage, SubmitButton } from "@/components/dashboard/ui";
 import type { Profile } from "@/lib/auth";
+import { BUSINESS_TYPES } from "@/lib/site";
 
 export function ProfileForm({ profile }: { profile: Profile | null }) {
   const [state, action] = useActionState<FormState, FormData>(updateProfile, null);
@@ -25,11 +26,9 @@ export function ProfileForm({ profile }: { profile: Profile | null }) {
       <label className="label">
         I am a
         <select className="field" name="businessType" defaultValue={p?.business_type ?? "new"}>
-          <option value="new">New entrepreneur</option>
-          <option value="store">Existing pizza store</option>
-          <option value="reseller">Reseller</option>
-          <option value="distributor">Distributor</option>
-          <option value="other">Other</option>
+          {BUSINESS_TYPES.map((t) => (
+            <option key={t.id} value={t.id}>{t.label}</option>
+          ))}
         </select>
       </label>
       <label className="label">

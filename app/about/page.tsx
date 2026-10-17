@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero } from "@/components/PageHero";
 import { SITE } from "@/lib/site";
-import { BRANCHES } from "@/lib/branches";
+import { publicBranches } from "@/lib/branches-db";
 
 export const metadata: Metadata = { title: "About Us", description: "About Manager's Pizza, its depot, branches and ecosystem.", alternates: { canonical: "/about" } };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const openCount = (await publicBranches()).filter((b) => b.status !== "opening_soon").length;
   return (
     <>
       <PageHero eyebrow="About" title="Pizza supplies and pizza businesses, made simple">
@@ -16,7 +17,7 @@ export default function AboutPage() {
         <section>
           <h2 className="text-2xl font-bold">What we do</h2>
           <p className="mt-3 leading-relaxed text-graphite">
-            From our depot in Quezon City and {BRANCHES.length - 1} more initial branches, we help people start and grow pizza businesses: we supply ingredients and packaging at depot prices, help choose equipment, and work with distributors, resellers and partners so supplies reach every province.
+            From our depot in Quezon City and {openCount - 1} more initial branches, we help people start and grow pizza businesses: we supply ingredients and packaging at depot prices, help choose equipment, and work with distributors, resellers and partners so supplies reach every province.
           </p>
           <h2 className="mt-8 text-2xl font-bold">The ecosystem</h2>
           <ul className="mt-3 grid gap-2 text-graphite">

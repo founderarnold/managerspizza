@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
-import { BRANCHES } from "@/lib/branches";
+import { useOpenBranches } from "./BranchesProvider";
 
 export function ContactFields({ withLocation = true }: { withLocation?: boolean }) {
+  const branches = useOpenBranches();
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -36,7 +39,7 @@ export function ContactFields({ withLocation = true }: { withLocation?: boolean 
             Nearest branch
             <select className="field" name="branch" defaultValue="">
               <option value="">Let Manager&apos;s Pizza choose</option>
-              {BRANCHES.map((b) => (
+              {branches.map((b) => (
                 <option key={b.slug} value={b.slug}>
                   {b.city}, {b.province}
                 </option>

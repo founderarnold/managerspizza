@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
       { source: "/contact-us", destination: "/about#contact", permanent: true },
       { source: "/map", destination: "/branches", permanent: true },
       { source: "/locations", destination: "/branches", permanent: true },
+      // Program split into Distributor and Reseller & Retailer
+      { source: "/partners/distributor-reseller", destination: "/partners/distributor", permanent: true },
     ];
   },
   async headers() {

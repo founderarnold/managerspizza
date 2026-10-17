@@ -5,7 +5,7 @@ import { ChevronLeft, ClipboardList } from "lucide-react";
 import { requireViewer } from "@/lib/auth";
 import { priceSheets } from "@/lib/prices-db";
 import { CATEGORIES } from "@/lib/catalog";
-import { BRANCHES } from "@/lib/branches";
+import { allBranches } from "@/lib/branches-db";
 import { TIERS } from "@/lib/tiers";
 import { PriceTable } from "@/components/PriceTable";
 
@@ -16,6 +16,7 @@ export default async function MyPricesPage() {
   const v = await requireViewer("/account/prices");
   const p = v.profile;
   if (p?.status !== "approved") redirect("/account");
+  const BRANCHES = await allBranches();
   const sheets = await priceSheets(p.branch_slug, p.tier);
   const tier = TIERS.find((t) => t.id === p.tier);
   const branch = BRANCHES.find((b) => b.slug === p.branch_slug);

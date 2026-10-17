@@ -16,5 +16,17 @@ export const NAV = [
   { href: "/about", label: "About" },
 ];
 
+/** "I am a …" choices used on every form. */
+export const BUSINESS_TYPES: { id: string; label: string }[] = [
+  { id: "new", label: "New entrepreneur" },
+  { id: "store", label: "Existing pizza store" },
+  { id: "distributor", label: "Distributor" },
+  { id: "reseller", label: "Reseller" },
+  { id: "retailer", label: "Retailer (sari-sari, grocery)" },
+  { id: "dropshipper", label: "Dropshipper / online seller" },
+  { id: "other", label: "Other" },
+];
+export const businessTypeLabel = (id: string | null | undefined) => BUSINESS_TYPES.find((t) => t.id === id)?.label ?? id ?? "";
+
 export const PRICE_NOTE =
   "Temporary price list for all branches and account tiers, based on the Quezon City depot list of 2 May 2026. Prices are subject to change without prior notice and may soon vary per branch and account level. Shipping is paid by the buyer and quoted separately.";
