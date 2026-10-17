@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getViewer } from "@/lib/auth";
+import { alertCustomer, alertStaff } from "@/lib/notify";
+import { after } from "next/server";
 import { getBranches } from "@/lib/branches-db";
 
 export type FormState = { error?: string; ok?: string } | null;
@@ -79,6 +81,21 @@ export async function register(_: FormState, fd: FormData): Promise<FormState> {
   }
 
   await sb.auth.signInWithPassword({ email, password });
+  const biz = str(fd, "businessName", 160);
+  after(() =>
+    Promise.all([
+      alertStaff(branch || null, {
+        subject: `New account to approve: ${full_name}`,
+        lines: [`${full_name}${biz ? ` (${biz})` : ""} created an account.`, `${email} · ${mobile}${str(fd, "city", 80) ? ` · ${str(fd, "city", 80)}` : ""}`, "Set their price level and branch, then approve them so they can order."],
+        link: { href: `/admin/accounts/${data.user.id}`, label: "Review the account" },
+      }),
+      alertCustomer(data.user.id, {
+        subject: "Welcome to Manager's Pizza",
+        lines: [`Hi ${full_name}, your account is created.`, "We'll check your details and set your price level, usually within one business day. We'll email you once you can order."],
+        link: { href: "/account", label: "My account" },
+      }),
+    ]),
+  );
   redirect("/account?welcome=1");
 }
 

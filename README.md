@@ -50,3 +50,10 @@ Every page reads prices through `sheetFor(slug, { branch, tier })` in `lib/prici
 Prices live in Supabase (`price_lists` + `price_list_items`), looked up cell by cell: branch + level → level → branch → public list (branch and level both empty). Shop pages refresh every 5 minutes and right after an admin saves prices. Every price change and request update is written to `audit_log`.
 
 Run `supabase/migrations/*.sql` in order. Form submissions land in the `leads` table (Supabase → Table editor).
+
+## Online store and alerts
+
+- Shop (`/`, `/shop`), cart (`/cart`), checkout, payment page with QR codes (`/orders/[ref]/pay`), order tracking (`/orders`), messages (`/messages`). Prices show only to approved, signed-in accounts, for their level and branch. Request-for-quotation items are set in `lib/products.ts` (`RFQ_SHEETS`, sachets).
+- Staff: `/branch/orders`, `/branch/orders/[id]` (confirm payments, status, shipping, tracking), `/branch/messages`. Admin > Payments holds the GCash / BDO / Maya / GoTyme QR codes and account details.
+- Alerts (`lib/notify.ts`): email via Resend when `RESEND_API_KEY` is set (sender `EMAIL_FROM`, default `Manager's Pizza <orders@managerspizza.com>`, domain must be verified in Resend); SMS via Semaphore when `SEMAPHORE_API_KEY` is set (`SEMAPHORE_SENDER` optional). Without the keys, alerts are skipped.
+- Database: `supabase/migrations/20261017020000_shop.sql` (orders, payments, payment methods, conversations, messages, storage buckets `payment-qr` and `payment-proofs`).

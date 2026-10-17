@@ -9,6 +9,9 @@ import { priceSheets } from "@/lib/prices-db";
 import { findVariant } from "@/lib/products";
 import { DELIVERY_METHODS, ORDER_STATUSES, orderTotals, type OrderItem, type OrderStatus, type Payment } from "@/lib/orders";
 import { conversationRole, type Conversation } from "@/lib/messages-db";
+import { orderStatus } from "@/lib/orders";
+import { alertCustomer, alertStaff, peso } from "@/lib/notify";
+import { after as after_ } from "next/server";
 import type { FormState } from "./auth";
 
 const str = (fd: FormData, k: string, max = 500) => String(fd.get(k) ?? "").trim().slice(0, max);
@@ -92,6 +95,37 @@ export async function placeOrder(_: FormState, fd: FormData): Promise<FormState>
     .single();
   if (error || !order) return { error: "We couldn't place your order. Please try again." };
   await db.from("order_events").insert({ order_id: order.id, status: "pending_payment", note: "Order placed", actor: v.id });
+  const subtotal = round2(items.reduce((s, i) => s + i.line_total, 0));
+  const branchName = (await getBranches()).find((b) => b.slug === branch)?.city ?? branch;
+  const delivery = DELIVERY_METHODS.find((d) => d.id === method)!.label;
+  after_(() =>
+    Promise.all([
+      alertCustomer(
+        v.id,
+        {
+          subject: `Order ${ref} received: please pay ${peso(subtotal)}`,
+          lines: [
+            `Thank you, ${name}! We received your order ${ref}.`,
+            `${items.length} item${items.length === 1 ? "" : "s"}, ${peso(subtotal)} · ${delivery} · ${branchName} branch`,
+            "Pay by GCash, BDO, Maya or GoTyme and upload your payment screenshot. We prepare your order once the payment is confirmed.",
+          ],
+          link: { href: `/orders/${ref}/pay`, label: "Pay now" },
+          sms: `Manager's Pizza: Order ${ref} received, ${peso(subtotal)}. Pay via GCash/BDO/Maya/GoTyme and upload the screenshot at managerspizza.com/orders`,
+        },
+        mobile,
+      ),
+      alertStaff(
+        branch,
+        {
+          subject: `New order ${ref} · ${branchName} · ${peso(subtotal)}`,
+          lines: [`New order from ${name}${p.business_name ? ` (${p.business_name})` : ""}, ${mobile}.`, `${items.length} items, ${peso(subtotal)} · ${delivery}`, "Waiting for the customer's payment."],
+          link: { href: `/branch/orders/${order.id}`, label: "Open the order" },
+          sms: `Manager's Pizza: New order ${ref} at ${branchName}, ${peso(subtotal)}, ${delivery}. Customer: ${name} ${mobile}`,
+        },
+        { sms: true },
+      ),
+    ]),
+  );
   revalidatePath("/orders");
   redirect(`/orders/${ref}/pay?new=1`);
 }
@@ -135,6 +169,18 @@ export async function submitPayment(orderId: string, _: FormState, fd: FormData)
   } else {
     await db.from("order_events").insert({ order_id: o.id, note: `Another payment screenshot uploaded (${method.toUpperCase()})`, actor: v.id });
   }
+  after_(() =>
+    alertStaff(
+      o.branch_slug,
+      {
+        subject: `Payment to check: ${o.reference} · ${peso(round2(amount))} ${method.toUpperCase()}`,
+        lines: [`${o.contact_name} uploaded a ${method.toUpperCase()} payment of ${peso(round2(amount))} for order ${o.reference}.`, "Check it against your account, then confirm it so the order can be prepared."],
+        link: { href: `/branch/orders/${o.id}`, label: "Check the payment" },
+        sms: `Manager's Pizza: Payment to check for ${o.reference}, ${peso(round2(amount))} via ${method.toUpperCase()}.`,
+      },
+      { sms: true },
+    ),
+  );
   revalidatePath(`/orders/${o.reference}`);
   redirect(`/orders/${o.reference}?paid=1`);
 }
@@ -173,8 +219,27 @@ export async function updateOrder(orderId: string, _: FormState, fd: FormData): 
   if (Number(o.shipping_fee ?? -1) !== Number(shipping ?? -1) && shipping != null) changes.push(`Shipping fee set to ₱${shipping.toLocaleString("en-PH")}`);
   if (Number(o.adjustment) !== round2(adjustment)) changes.push(`Adjustment ₱${adjustment.toLocaleString("en-PH")}${after.adjustment_note ? ` (${after.adjustment_note})` : ""}`);
   if (after.tracking_ref && after.tracking_ref !== o.tracking_ref) changes.push(`Tracking: ${after.courier ?? ""} ${after.tracking_ref}`.trim());
-  if (status !== o.status || note || changes.length)
+  if (status !== o.status || note || changes.length) {
     await db.from("order_events").insert({ order_id: o.id, status: status !== o.status ? status : null, note: [note, ...changes].filter(Boolean).join(" · ") || null, actor: v.id });
+    const s = orderStatus(status);
+    const t = orderTotals({ ...o, ...after }, ((await db.from("payments").select("amount,status").eq("order_id", o.id)).data ?? []) as Pick<Payment, "amount" | "status">[]);
+    after_(() =>
+      alertCustomer(
+        o.user_id,
+        {
+          subject: status !== o.status ? `Order ${o.reference}: ${s.label}` : `Update on order ${o.reference}`,
+          lines: [
+            status !== o.status ? s.customer : `There's an update on your order ${o.reference}.`,
+            ...[note, ...changes].filter(Boolean),
+            ...(t.balance > 0 && status !== "cancelled" && (shipping != null || adjustment !== 0) ? [`Amount still to pay: ${peso(t.balance)}`] : []),
+          ],
+          link: { href: t.balance > 0 && status !== "cancelled" ? `/orders/${o.reference}/pay` : `/orders/${o.reference}`, label: t.balance > 0 && status !== "cancelled" ? "Pay the balance" : "Track your order" },
+          sms: `Manager's Pizza: Order ${o.reference} - ${status !== o.status ? s.label : "update"}.${note ? ` ${note}` : ""}${after.tracking_ref ? ` Tracking: ${after.courier ?? ""} ${after.tracking_ref}.` : ""}`,
+        },
+        o.contact_mobile,
+      ),
+    );
+  }
   revalidatePath(`/branch/orders/${o.id}`);
   revalidatePath(`/orders/${o.reference}`);
   return { ok: "Saved. The customer sees the update on their order page." };
@@ -205,6 +270,25 @@ export async function reviewPayment(paymentId: string, decision: "confirmed" | "
     note: decision === "confirmed" ? `Payment of ₱${Number(pay.amount).toLocaleString("en-PH")} confirmed${t.balance > 0 ? `. Balance ₱${t.balance.toLocaleString("en-PH")}` : ""}` : `Payment not accepted: ${note}`,
     actor: v.id,
   });
+  after_(() =>
+    alertCustomer(
+      o.user_id,
+      decision === "confirmed"
+        ? {
+            subject: `Payment confirmed for order ${o.reference}`,
+            lines: [`We received your payment of ${peso(Number(pay.amount))}.`, t.balance > 0 ? `Balance still to pay: ${peso(t.balance)}.` : "Your order is fully paid. The branch will now prepare it."],
+            link: { href: t.balance > 0 ? `/orders/${o.reference}/pay` : `/orders/${o.reference}`, label: t.balance > 0 ? "Pay the balance" : "Track your order" },
+            sms: `Manager's Pizza: Payment of ${peso(Number(pay.amount))} for order ${o.reference} confirmed.${t.balance > 0 ? ` Balance ${peso(t.balance)}.` : " We'll prepare your order."}`,
+          }
+        : {
+            subject: `Payment not received for order ${o.reference}`,
+            lines: [`We could not confirm your payment of ${peso(Number(pay.amount))}.`, `Reason: ${note}`, "Please check and upload your payment again, or message the branch."],
+            link: { href: `/orders/${o.reference}/pay`, label: "Upload payment again" },
+            sms: `Manager's Pizza: Payment for order ${o.reference} not confirmed: ${note}. Please re-upload at managerspizza.com/orders`,
+          },
+      o.contact_mobile,
+    ),
+  );
   revalidatePath(`/branch/orders/${o.id}`);
   revalidatePath(`/orders/${o.reference}`);
   return { ok: decision === "confirmed" ? "Payment confirmed." : "Payment marked as not accepted. The customer was asked to pay again." };
@@ -266,6 +350,14 @@ export async function startConversation(_: FormState, fd: FormData): Promise<For
     .single();
   if (error || !c) return { error: "We couldn't send your message. Please try again." };
   await db.from("messages").insert({ conversation_id: c.id, sender_id: v.id, from_staff: false, body });
+  const who = v.profile?.full_name ?? v.email;
+  after_(() =>
+    alertStaff(branch, {
+      subject: `New message: ${subject}`,
+      lines: [`${who}${v.profile?.business_name ? ` (${v.profile.business_name})` : ""} sent a message:`, body.length > 400 ? `${body.slice(0, 400)}…` : body],
+      link: { href: `/messages/${c.id}`, label: "Reply" },
+    }),
+  );
   redirect(`/messages/${c.id}`);
 }
 
@@ -280,8 +372,28 @@ export async function sendMessage(conversationId: string, body: string): Promise
   const role = c ? conversationRole(v, c as Conversation) : null;
   if (!c || !role) return DENIED;
   const now = new Date().toISOString();
+  // Email the other side once per burst: skip if this side already wrote in the last 10 minutes.
+  const { data: prev } = await db.from("messages").select("from_staff,created_at").eq("conversation_id", c.id).order("id", { ascending: false }).limit(1).maybeSingle();
+  const burst = prev && prev.from_staff === (role === "staff") && Date.now() - new Date(prev.created_at).getTime() < 10 * 60 * 1000;
   const { error } = await db.from("messages").insert({ conversation_id: c.id, sender_id: v.id, from_staff: role === "staff", body: text });
   if (error) return { error: "Message not sent. Please try again." };
+  if (!burst) {
+    const preview = text.length > 400 ? `${text.slice(0, 400)}…` : text;
+    after_(() =>
+      role === "staff"
+        ? alertCustomer(c.user_id, {
+            subject: `Manager's Pizza replied: ${c.subject}`,
+            lines: ["You have a new reply from Manager's Pizza:", preview],
+            link: { href: `/messages/${c.id}`, label: "Open the conversation" },
+            sms: `Manager's Pizza replied to "${c.subject.slice(0, 60)}". Read it at managerspizza.com/messages`,
+          })
+        : alertStaff(c.branch_slug, {
+            subject: `New message: ${c.subject}`,
+            lines: [`${v.profile?.full_name ?? v.email} wrote:`, preview],
+            link: { href: `/messages/${c.id}`, label: "Reply" },
+          }),
+    );
+  }
   await db
     .from("conversations")
     .update({ last_message_at: now, status: "open", ...(role === "staff" ? { staff_read_at: now } : { customer_read_at: now }) })

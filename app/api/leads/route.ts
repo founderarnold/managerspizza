@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { alertContact, alertStaff } from "@/lib/notify";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getViewer } from "@/lib/auth";
 
@@ -70,5 +71,20 @@ export async function POST(req: Request) {
     console.error("lead insert failed", error.message);
     return NextResponse.json({ ref, saved: false });
   }
+  const KIND = { quote: "quotation request", consultation: "consultation request", trial: "Pizza Trial request", partner: "partner application" }[kind];
+  const itemLines = (items as { name?: string; option?: string; qty?: number }[]).slice(0, 10).map((i) => `${i.qty ?? 1} × ${i.name ?? ""}${i.option ? ` (${i.option})` : ""}`);
+  after(() =>
+    Promise.all([
+      alertStaff(branch, {
+        subject: `New ${KIND} ${ref} from ${name}`,
+        lines: [`${name}, ${mobile}${email ? `, ${email}` : ""} sent a ${KIND}.`, ...itemLines, ...(str(body.notes, 300) ? [`Notes: ${str(body.notes, 300)}`] : [])],
+        link: { href: "/branch", label: "Open the branch dashboard" },
+      }),
+      alertContact(email || null, null, {
+        subject: `We received your ${KIND} ${ref}`,
+        lines: [`Hi ${name}, thank you! Your reference number is ${ref}.`, "Our team will contact you by phone or SMS within one business day."],
+      }),
+    ]),
+  );
   return NextResponse.json({ ref, saved: true });
 }

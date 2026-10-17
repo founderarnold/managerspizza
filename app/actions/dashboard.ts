@@ -9,6 +9,8 @@ import { PRICE_SHEETS } from "@/lib/catalog";
 import { LEAD_STATUSES, type LeadStatus } from "@/lib/leads";
 import { currentLists } from "@/lib/prices-db";
 import type { FormState } from "./auth";
+import { alertContact, alertCustomer, peso } from "@/lib/notify";
+import { after as after_ } from "next/server";
 
 const str = (fd: FormData, k: string, max = 500) => String(fd.get(k) ?? "").trim().slice(0, max);
 const isBranch = async (s: string) => (await getBranches()).some((b) => b.slug === s);
@@ -51,6 +53,21 @@ export async function updateLead(id: string, _: FormState, fd: FormData): Promis
   const { error } = await db.from("leads").update(after).eq("id", id);
   if (error) return { error: "We couldn't save this request. Please try again." };
   await audit(v.id, "update", "leads", lead.reference, { status: lead.status, assigned_branch: lead.assigned_branch, quote: lead.quote }, after);
+  // Tell the customer when the branch sends (or changes) its quotation.
+  const prevQuote = (lead.quote ?? {}) as { reply?: string; amount?: number | null };
+  if ((after.quote.reply && after.quote.reply !== prevQuote.reply) || (amount != null && amount !== prevQuote.amount)) {
+    const a = {
+      subject: `Your quotation ${lead.reference} from Manager's Pizza`,
+      lines: [
+        `Hi ${lead.name}, here is our reply to your request ${lead.reference}.`,
+        ...(amount != null ? [`Quoted amount: ${peso(amount)}${validUntil ? `, valid until ${validUntil}` : ""}`] : []),
+        ...(after.quote.reply ? [after.quote.reply] : []),
+      ],
+      link: lead.user_id ? { href: "/account", label: "See it in My account" } : { href: "/quote", label: "Visit Manager's Pizza" },
+      sms: `Manager's Pizza: Reply to your request ${lead.reference}${amount != null ? `, quoted ${peso(amount)}` : ""}. ${lead.user_id ? "See managerspizza.com/account" : "We'll also call you."}`,
+    };
+    after_(() => (lead.user_id ? alertCustomer(lead.user_id, a, lead.mobile) : alertContact(lead.email, lead.mobile, a)));
+  }
   revalidatePath("/branch", "layout");
   revalidatePath("/admin", "layout");
   return { ok: "Saved." };
@@ -82,6 +99,17 @@ export async function updateAccount(id: string, _: FormState, fd: FormData): Pro
   const { error } = await db.from("profiles").update(after).eq("id", id);
   if (error) return { error: "We couldn't save this account. Please try again." };
   await audit(v.id, "update", "profiles", before.email, { tier: before.tier, status: before.status, branch_slug: before.branch_slug }, after);
+  if (status === "approved" && before.status !== "approved") {
+    const tierName = TIERS.find((t) => t.id === tier)?.name ?? tier;
+    after_(() =>
+      alertCustomer(id, {
+        subject: "Your Manager's Pizza account is approved",
+        lines: [`Hi ${before.full_name}, your account is approved!`, `Your price level: ${tierName}. Sign in to see your prices, order online and track your deliveries.`],
+        link: { href: "/shop", label: "Start ordering" },
+        sms: `Manager's Pizza: Your account is approved (${tierName}). Sign in at managerspizza.com to see your prices and order.`,
+      }),
+    );
+  }
   revalidatePath("/admin", "layout");
   return { ok: "Saved." };
 }
