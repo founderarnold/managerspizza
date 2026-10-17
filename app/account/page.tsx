@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BadgeCheck, Building2, ClipboardList, Clock, LayoutDashboard, LogOut, ShieldCheck, Tag } from "lucide-react";
+import { BadgeCheck, Building2, ClipboardList, Clock, LayoutDashboard, LogOut, MessageSquare, Package, ShieldCheck, ShoppingBag, Tag } from "lucide-react";
 import { requireViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getAllBranches } from "@/lib/branches-db";
@@ -87,15 +87,26 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         </p>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
         {approved && (
-          <Link href="/account/prices" className="btn-primary">
-            <Tag size={18} aria-hidden /> My price list
+          <Link href="/shop" className="btn-primary">
+            <ShoppingBag size={18} aria-hidden /> Shop
           </Link>
         )}
-        <Link href="/quote" className={approved ? "btn-ghost" : "btn-primary"}>
-          <ClipboardList size={18} aria-hidden /> New quotation request
+        <Link href="/orders" className="btn-ghost">
+          <Package size={18} aria-hidden /> My orders
         </Link>
+        <Link href="/messages" className="btn-ghost">
+          <MessageSquare size={18} aria-hidden /> Messages
+        </Link>
+        <Link href="/quote" className={approved ? "btn-ghost" : "btn-primary"}>
+          <ClipboardList size={18} aria-hidden /> Request quotation
+        </Link>
+        {(v.isStaff || (approved && p?.tier === "factory")) && (
+          <Link href="/account/prices" className="btn-ghost">
+            <Tag size={18} aria-hidden /> Price lists
+          </Link>
+        )}
       </div>
 
       <section className="mt-10" aria-labelledby="req-h">

@@ -13,16 +13,21 @@ import { AccountStatusBadge, Stat } from "@/components/dashboard/Badges";
 import { LeadList, OPEN_STATUSES, StatusFilter } from "@/components/dashboard/LeadList";
 import { AddStaffForm, BranchForm, CreateAccountForm, PriceEditor } from "@/components/dashboard/AdminForms";
 import { BRANCH_STATUS_LABEL } from "@/lib/branches";
+import { paymentMethods } from "@/lib/orders-db";
+import { PaymentMethodForm } from "@/components/shop/PaymentMethodForm";
+import { OPEN_ORDER_STATUSES } from "@/lib/orders";
 
 export const metadata: Metadata = { title: "Admin dashboard", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 const TABS = [
   { id: "overview", label: "Overview" },
+  { id: "orders", label: "Orders" },
   { id: "requests", label: "Requests" },
   { id: "accounts", label: "Accounts" },
   { id: "prices", label: "Prices" },
   { id: "branches", label: "Branches" },
+  { id: "payments", label: "Payments" },
   { id: "staff", label: "Staff" },
 ];
 
@@ -58,6 +63,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {tab === "accounts" && <Accounts sp={sp} />}
         {tab === "prices" && <Prices sp={sp} />}
         {tab === "branches" && <Branches />}
+        {tab === "payments" && <Payments />}
+        {tab === "orders" && <OrdersTab />}
         {tab === "staff" && <Staff myId={v.id} canGrantFounder={v.roles.some((r) => r.role === "founder")} />}
       </div>
     </div>
@@ -399,6 +406,44 @@ async function Branches() {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+async function Payments() {
+  const methods = await paymentMethods(false);
+  return (
+    <div className="grid gap-4">
+      <p className="card p-4 text-sm text-graphite">
+        These QR codes and account details are shown to customers on the payment page after they place an order. Upload a clear image of each QR code (screenshot from the GCash, BDO, Maya or GoTyme app).
+      </p>
+      {methods.length === 0 ? (
+        <p className="card p-6 text-muted">The payments table is not set up yet. Run the shop migration in Supabase.</p>
+      ) : (
+        methods.map((m) => <PaymentMethodForm key={m.id} method={m} />)
+      )}
+    </div>
+  );
+}
+
+async function OrdersTab() {
+  const db = supabaseAdmin()!;
+  const { data } = await db.from("orders").select("status,branch_slug").limit(10000);
+  const O = data ?? [];
+  const open = O.filter((o) => OPEN_ORDER_STATUSES.includes(o.status));
+  return (
+    <div className="grid gap-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Stat label="Open orders" value={open.length} />
+        <Stat label="Payments to check" value={O.filter((o) => o.status === "payment_review").length} />
+        <Stat label="Waiting for payment" value={O.filter((o) => o.status === "pending_payment").length} />
+        <Stat label="All orders" value={O.length} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Link href="/branch/orders?b=all" className="btn-primary">Open all orders</Link>
+        <Link href="/branch/orders?b=all&status=payment_review" className="btn-ghost">Payments to check</Link>
+        <Link href="/branch/messages" className="btn-ghost">Inbox</Link>
+      </div>
     </div>
   );
 }

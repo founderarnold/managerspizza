@@ -8,6 +8,7 @@ import { SITE } from "@/lib/site";
 import type { Branch } from "@/lib/branches";
 import { getBranches } from "@/lib/branches-db";
 import { BranchesProvider } from "@/components/BranchesProvider";
+import { ShopProvider } from "@/components/shop/ShopProvider";
 import { SwRegister } from "@/components/SwRegister";
 
 export const metadata: Metadata = {
@@ -68,12 +69,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           Skip to content
         </a>
         <BranchesProvider branches={branches}>
-        <QuoteProvider>
-          <Header />
-          <main id="main" className="flex-1">{children}</main>
-          <Footer />
-          <TabBar />
-        </QuoteProvider>
+          <ShopProvider>
+            <QuoteProvider>
+              <Header />
+              <main id="main" className="flex-1">{children}</main>
+              <Footer />
+              <TabBar />
+            </QuoteProvider>
+          </ShopProvider>
         </BranchesProvider>
         <SwRegister />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd(branches)) }} />

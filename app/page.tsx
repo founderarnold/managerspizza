@@ -1,12 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Boxes, ChefHat, Handshake, MapPin, Package, Pizza, Snowflake, Store, Truck, Wheat } from "lucide-react";
-import { CATEGORIES, formatPeso, priceRange } from "@/lib/catalog";
+import { ArrowRight, Handshake, MapPin, Snowflake, Store, Truck } from "lucide-react";
+import { formatPeso, priceRange } from "@/lib/catalog";
+import { Catalog } from "@/components/shop/Catalog";
 import { priceSheets } from "@/lib/prices-db";
 import { getBranches } from "@/lib/branches-db";
 import logoYellow from "@/public/brand/logo-full-on-yellow.png";
 
-const CAT_ICON = { "ready-to-cook": Pizza, "dough-crust": Wheat, "cheese-sauce-toppings": ChefHat, "boxes-packaging": Boxes, equipment: Package } as const;
+
 
 export const revalidate = 300;
 
@@ -59,32 +60,18 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="container-x py-16 md:py-20">
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+      <section id="shop" className="container-x scroll-mt-20 py-10 md:py-14">
+        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
             <p className="eyebrow">Shop supplies</p>
-            <h2 className="mt-2 text-3xl font-bold md:text-4xl">One supplier for the whole kitchen</h2>
+            <h2 className="mt-2 text-3xl font-bold md:text-4xl">Order online, pay by QR, track to your door</h2>
           </div>
-          <Link href="/shop" className="inline-flex items-center gap-1 font-semibold text-brand-red-deep hover:underline">
-            Full price list <ArrowRight size={16} aria-hidden />
+          <Link href="/cart" className="inline-flex items-center gap-1 font-semibold text-brand-red-deep hover:underline">
+            View my cart <ArrowRight size={16} aria-hidden />
           </Link>
         </div>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {CATEGORIES.map((c) => {
-            const Icon = CAT_ICON[c.id];
-            const sheets = all.filter((s) => s.category === c.id);
-            const min = Math.min(...sheets.map((s) => priceRange(s).min));
-            return (
-              <Link key={c.id} href={`/shop#${c.id}`} className="card group flex flex-col p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lift">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-yellow-soft text-ink">
-                  <Icon size={22} aria-hidden />
-                </span>
-                <h3 className="mt-4 text-lg font-bold leading-snug">{c.name}</h3>
-                <p className="mt-1 flex-1 text-sm leading-relaxed text-muted">{c.blurb}</p>
-                <p className="mt-4 text-sm">from <strong className="text-base tabular-nums">{formatPeso(min)}</strong></p>
-              </Link>
-            );
-          })}
+        <div className="mt-2">
+          <Catalog />
         </div>
       </section>
 
@@ -92,15 +79,15 @@ export default async function Home() {
         <div className="container-x grid gap-10 py-16 md:py-20 lg:grid-cols-3">
           <div>
             <p className="eyebrow">How ordering works</p>
-            <h2 className="mt-2 text-3xl font-bold md:text-4xl">From quote to your door</h2>
-            <p className="mt-3 text-graphite">Shipping is always paid by the buyer and shown before you confirm. No surprise freight.</p>
+            <h2 className="mt-2 text-3xl font-bold md:text-4xl">From cart to your door</h2>
+            <p className="mt-3 text-graphite">Shipping is paid by the buyer. Track every step of your order and message your branch anytime.</p>
           </div>
           <ol className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
             {[
-              ["Browse the price list", "Every price on the site comes from the current Manager's Pizza list."],
-              ["Build your quote", "Add items and quantities. Your list stays saved on this device."],
-              ["Get a confirmed quote", "The nearest branch confirms stock, shipping and payment terms."],
-              ["Pick up or receive", "Pickup, local delivery, or courier, bus, air or truck shipping."],
+              ["Add to cart", "Sign in to see the price for your level. Made-to-order items go to a request for quotation."],
+              ["Check out", "Choose pickup or delivery: Lalamove, Grab, Transportify, trucking, container, bus, van or jeep."],
+              ["Pay by QR", "Scan the GCash, BDO, Maya or GoTyme QR code and upload your payment screenshot."],
+              ["Track and reorder", "Follow your order from payment to delivery, and order again in one tap."],
             ].map(([t, d], i) => (
               <li key={t} className="rounded-2xl border border-line bg-cream p-5">
                 <span className="font-display text-3xl font-extrabold text-brand-red-deep">0{i + 1}</span>
@@ -117,7 +104,7 @@ export default async function Home() {
           {[
             { icon: Store, title: "Start a Pizza Business", text: "Get help choosing equipment, supplies and a starting menu, or try our pilot Pizza Trial / Pahiram.", href: "/start-a-business", cta: "See how to start" },
             { icon: Handshake, title: "Partner programs", text: "Affiliates, dropshippers, distributors, resellers, networking companies and suppliers.", href: "/partners", cta: "Explore programs" },
-            { icon: Truck, title: "Branches near you", text: "Eleven initial branches from Pangasinan and Quirino to Cagayan de Oro, with more opening soon.", href: "/branches", cta: "Open the map" },
+            { icon: Truck, title: "Branches near you", text: `${BRANCHES.length} branches from Pangasinan and Quirino to Tacloban and Cagayan de Oro, with more opening soon.`, href: "/branches", cta: "Open the map" },
           ].map(({ icon: Icon, title, text, href, cta }) => (
             <Link key={href} href={href} className="card group p-6 transition hover:shadow-lift">
               <Icon size={26} className="text-brand-red-deep" aria-hidden />

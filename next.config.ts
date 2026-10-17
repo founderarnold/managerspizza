@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: { formats: ["image/avif", "image/webp"] },
+  // Payment screenshots and QR images are sent through server actions (phones shrink them first).
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
   async redirects() {
     return [
       // Old Google Sites pages

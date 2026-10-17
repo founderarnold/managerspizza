@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ShieldCheck, Store } from "lucide-react";
+import { MessageSquare, Package, ShieldCheck, Store, Tag, Wallet } from "lucide-react";
+import { OPEN_ORDER_STATUSES } from "@/lib/orders";
+import { staffConversations } from "@/lib/messages-db";
 import { requireStaff, type Profile } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getAllBranches } from "@/lib/branches-db";
@@ -33,6 +35,12 @@ export default async function BranchDashboard({ searchParams }: { searchParams: 
     db.from("profiles").select("*").eq("branch_slug", branch.slug).order("created_at", { ascending: false }).limit(200),
   ]);
   const counts = (s: string) => (all ?? []).filter((l) => l.status === s).length;
+  const [{ data: orders }, inbox] = await Promise.all([
+    db.from("orders").select("status").eq("branch_slug", branch.slug).in("status", OPEN_ORDER_STATUSES).limit(5000),
+    staffConversations(v, 500),
+  ]);
+  const orderCount = (s: string) => (orders ?? []).filter((o) => s === "open" || o.status === s).length;
+  const unreadChats = inbox.filter((c) => c.status === "open" && c.last_message_at > c.staff_read_at).length;
   const weekAgo = Date.now() - 7 * 864e5;
   const thisWeek = (all ?? []).filter((l) => new Date(l.created_at).getTime() > weekAgo).length;
 
@@ -67,6 +75,26 @@ export default async function BranchDashboard({ searchParams }: { searchParams: 
       )}
 
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Link href={`/branch/orders?b=${branch.slug}`} className="card flex items-center gap-3 p-4 hover:shadow-lift">
+          <Package size={22} className="text-brand-red-deep" aria-hidden />
+          <span><span className="block font-display text-2xl font-bold tabular-nums">{orderCount("open")}</span><span className="text-sm text-muted">Open orders</span></span>
+        </Link>
+        <Link href={`/branch/orders?b=${branch.slug}&status=payment_review`} className="card flex items-center gap-3 p-4 hover:shadow-lift">
+          <Wallet size={22} className="text-brand-red-deep" aria-hidden />
+          <span><span className="block font-display text-2xl font-bold tabular-nums">{orderCount("payment_review")}</span><span className="text-sm text-muted">Payments to check</span></span>
+        </Link>
+        <Link href="/branch/messages" className="card flex items-center gap-3 p-4 hover:shadow-lift">
+          <MessageSquare size={22} className="text-brand-red-deep" aria-hidden />
+          <span><span className="block font-display text-2xl font-bold tabular-nums">{unreadChats}</span><span className="text-sm text-muted">Unread messages</span></span>
+        </Link>
+        <Link href={`/account/prices?branch=${branch.slug}`} className="card flex items-center gap-3 p-4 hover:shadow-lift">
+          <Tag size={22} className="text-brand-red-deep" aria-hidden />
+          <span><span className="block font-semibold">Price lists</span><span className="text-sm text-muted">All levels</span></span>
+        </Link>
+      </div>
+
+      <h2 className="mt-8 text-xl font-bold">Quotation requests</h2>
+      <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="New requests" value={counts("new")} />
         <Stat label="In review" value={counts("in_review")} />
         <Stat label="Quoted, waiting" value={counts("quoted")} />

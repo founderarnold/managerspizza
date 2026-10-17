@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ClipboardList, LogIn, Menu, Phone, UserRound, X } from "lucide-react";
+import { ClipboardList, LogIn, Menu, MessageSquare, Phone, ShoppingCart, UserRound, X } from "lucide-react";
+import { useShop } from "./shop/ShopProvider";
 import { NAV, SITE } from "@/lib/site";
 import { Logo } from "./Logo";
 import { useQuote } from "./QuoteProvider";
@@ -16,6 +17,8 @@ export function Header() {
   const pathname = usePathname();
   const { count } = useQuote();
   const signedIn = useSignedIn();
+  const { cartCount, me } = useShop();
+  const unread = me?.unread ?? 0;
   const openBranches = useBranches().filter((b) => b.status !== "opening_soon").length;
   const account = signedIn
     ? { href: "/account", label: "My account", Icon: UserRound }
@@ -72,6 +75,17 @@ export function Header() {
             <account.Icon size={18} aria-hidden />
             <span className="hidden sm:inline lg:hidden">{account.label}</span>
             <span className="hidden min-[1140px]:inline">{account.label}</span>
+          </Link>
+          {signedIn && (
+            <Link href="/messages" aria-label={`Messages${unread ? `, ${unread} unread` : ""}`} className="relative hidden h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-white hover:border-ink/40 md:inline-flex">
+              <MessageSquare size={18} aria-hidden />
+              {unread > 0 && <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-brand-red-deep px-1 text-center text-[10px] font-bold leading-[18px] text-white">{unread}</span>}
+            </Link>
+          )}
+          <Link href="/cart" aria-label={`Cart, ${cartCount} items`} className="relative hidden h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-ink px-4 font-semibold text-white hover:bg-graphite md:inline-flex">
+            <ShoppingCart size={18} aria-hidden />
+            <span className="hidden xl:inline">Cart</span>
+            {cartCount > 0 && <span className="rounded-full bg-brand-yellow px-1.5 text-xs font-bold text-ink">{cartCount}</span>}
           </Link>
           <Link href="/quote" className="btn-primary !px-4" aria-label={`Quote list, ${count} items`}>
             <ClipboardList size={18} aria-hidden />
