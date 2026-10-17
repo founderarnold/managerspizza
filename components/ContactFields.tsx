@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { BRANCHES } from "@/lib/branches";
+import { useBranches } from "@/components/BranchesProvider";
 
 export function ContactFields({ withLocation = true }: { withLocation?: boolean }) {
+  const BRANCHES = useBranches();
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2">

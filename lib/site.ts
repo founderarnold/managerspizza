@@ -18,3 +18,14 @@ export const NAV = [
 
 export const PRICE_NOTE =
   "Temporary price list for all branches and account tiers, based on the Quezon City depot list of 2 May 2026. Prices are subject to change without prior notice and may soon vary per branch and account level. Shipping is paid by the buyer and quoted separately.";
+
+/** "I am a" choices on sign-up, profile, quotation and admin forms. */
+export const BUSINESS_TYPES = [
+  { id: "new", label: "New entrepreneur" },
+  { id: "store", label: "Existing pizza store" },
+  { id: "distributor", label: "Distributor" },
+  { id: "reseller", label: "Reseller" },
+  { id: "retailer", label: "Retailer" },
+  { id: "other", label: "Other" },
+] as const;
+export const businessTypeLabel = (id: string | null | undefined) => BUSINESS_TYPES.find((t) => t.id === id)?.label ?? id ?? "";

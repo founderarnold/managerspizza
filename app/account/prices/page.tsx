@@ -5,7 +5,7 @@ import { ChevronLeft, ClipboardList } from "lucide-react";
 import { requireViewer } from "@/lib/auth";
 import { priceSheets } from "@/lib/prices-db";
 import { CATEGORIES } from "@/lib/catalog";
-import { BRANCHES } from "@/lib/branches";
+import { getAllBranches } from "@/lib/branches-db";
 import { TIERS } from "@/lib/tiers";
 import { PriceTable } from "@/components/PriceTable";
 
@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: "My price list", robots: { index: fal
 export const dynamic = "force-dynamic";
 
 export default async function MyPricesPage() {
+  const BRANCHES = await getAllBranches();
   const v = await requireViewer("/account/prices");
   const p = v.profile;
   if (p?.status !== "approved") redirect("/account");

@@ -15,7 +15,7 @@ export default function PartnersPage() {
   return (
     <>
       <PageHero eyebrow="Partners" title="Grow with Manager's Pizza">
-        Five ways to partner with us. Every program has clear, published terms, and all terms are subject to a signed agreement.
+        Six ways to partner with us. Every program has clear, published terms, and all terms are subject to a signed agreement.
       </PageHero>
       <div className="container-x py-12">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

@@ -3,11 +3,12 @@
 import { useActionState } from "react";
 import { updateLead } from "@/app/actions/dashboard";
 import type { FormState } from "@/app/actions/auth";
-import { BRANCHES } from "@/lib/branches";
+import { useBranches } from "@/components/BranchesProvider";
 import { LEAD_STATUSES, type Lead } from "@/lib/leads";
 import { FormMessage, SubmitButton } from "./ui";
 
 export function LeadEditor({ lead, canMove }: { lead: Lead; canMove: boolean }) {
+  const BRANCHES = useBranches();
   const [state, action] = useActionState<FormState, FormData>(updateLead.bind(null, lead.id), null);
   const chosen = BRANCHES.find((b) => b.slug === lead.branch_slug);
   return (

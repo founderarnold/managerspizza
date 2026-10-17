@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronRight, Trash2 } from "lucide-react";
 import { requireAdmin, ROLE_LABEL, type Profile, type StaffRole } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { BRANCHES } from "@/lib/branches";
+import { getAllBranches } from "@/lib/branches-db";
 import { TIERS, type TierId } from "@/lib/tiers";
 import { PRICE_SHEETS } from "@/lib/catalog";
 import { formatDate, leadBranch, type Lead } from "@/lib/leads";
@@ -11,7 +11,8 @@ import { cellKey, chainFor, currentLists, layersFor, listItems, resolveCell } fr
 import { removeStaff } from "@/app/actions/dashboard";
 import { AccountStatusBadge, Stat } from "@/components/dashboard/Badges";
 import { LeadList, OPEN_STATUSES, StatusFilter } from "@/components/dashboard/LeadList";
-import { AddStaffForm, PriceEditor } from "@/components/dashboard/AdminForms";
+import { AddStaffForm, BranchForm, CreateAccountForm, PriceEditor } from "@/components/dashboard/AdminForms";
+import { BRANCH_STATUS_LABEL } from "@/lib/branches";
 
 export const metadata: Metadata = { title: "Admin dashboard", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ const TABS = [
   { id: "requests", label: "Requests" },
   { id: "accounts", label: "Accounts" },
   { id: "prices", label: "Prices" },
+  { id: "branches", label: "Branches" },
   { id: "staff", label: "Staff" },
 ];
 
@@ -55,6 +57,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         {tab === "requests" && <Requests sp={sp} />}
         {tab === "accounts" && <Accounts sp={sp} />}
         {tab === "prices" && <Prices sp={sp} />}
+        {tab === "branches" && <Branches />}
         {tab === "staff" && <Staff myId={v.id} canGrantFounder={v.roles.some((r) => r.role === "founder")} />}
       </div>
     </div>
@@ -62,6 +65,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 }
 
 async function Overview() {
+  const BRANCHES = await getAllBranches();
   const db = supabaseAdmin()!;
   const [{ data: leads }, { data: profiles }] = await Promise.all([
     db.from("leads").select("status,branch_slug,assigned_branch,created_at").limit(10000),
@@ -122,6 +126,7 @@ async function Overview() {
 }
 
 async function Requests({ sp }: { sp: SP }) {
+  const BRANCHES = await getAllBranches();
   const db = supabaseAdmin()!;
   const status = sp.status ?? "open";
   const b = sp.b ?? "all";
@@ -160,6 +165,7 @@ async function Requests({ sp }: { sp: SP }) {
 }
 
 async function Accounts({ sp }: { sp: SP }) {
+  const BRANCHES = await getAllBranches();
   const db = supabaseAdmin()!;
   const status = sp.status ?? "all";
   let q = db.from("profiles").select("*").order("created_at", { ascending: false }).limit(500);
@@ -178,6 +184,13 @@ async function Accounts({ sp }: { sp: SP }) {
   ];
   return (
     <div className="grid gap-4">
+      <details className="card p-5" open={rows.length === 0}>
+        <summary className="cursor-pointer font-display text-lg font-bold">+ Add a distributor, reseller or retailer</summary>
+        <p className="mt-2 text-sm text-muted">
+          Opens an approved account with their price level and branch. Or, ask them to sign up on the website and approve them below.
+        </p>
+        <div className="mt-4"><CreateAccountForm /></div>
+      </details>
       <form className="flex flex-wrap items-end gap-3" action="/admin">
         <input type="hidden" name="tab" value="accounts" />
         <input type="hidden" name="status" value={status} />
@@ -228,6 +241,7 @@ async function Accounts({ sp }: { sp: SP }) {
 }
 
 async function Prices({ sp }: { sp: SP }) {
+  const BRANCHES = await getAllBranches();
   const branch = BRANCHES.some((b) => b.slug === sp.branch) ? sp.branch! : "";
   const tier = TIERS.some((t) => t.id === sp.tier) ? (sp.tier as TierId) : "";
   const sheet = PRICE_SHEETS.find((s) => s.slug === sp.sheet) ?? PRICE_SHEETS[0];
@@ -295,6 +309,7 @@ async function Prices({ sp }: { sp: SP }) {
 }
 
 async function Staff({ myId, canGrantFounder }: { myId: string; canGrantFounder: boolean }) {
+  const BRANCHES = await getAllBranches();
   const db = supabaseAdmin()!;
   const { data: roles } = await db.from("staff_roles").select("*").order("role");
   const R = (roles ?? []) as StaffRole[];
@@ -354,6 +369,36 @@ async function Staff({ myId, canGrantFounder }: { myId: string; canGrantFounder:
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+async function Branches() {
+  const branches = await getAllBranches();
+  return (
+    <div className="grid gap-4">
+      <details className="card p-5">
+        <summary className="cursor-pointer font-display text-lg font-bold">+ Add a new branch</summary>
+        <div className="mt-4"><BranchForm /></div>
+      </details>
+      <ul className="grid gap-2">
+        {branches.map((b) => (
+          <li key={b.slug}>
+            <details className="card p-4">
+              <summary className="flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1">
+                <strong>{b.city}, {b.province}</strong>
+                <span className="chip">{b.region}</span>
+                {b.hq && <span className="chip bg-brand-yellow-soft">Main depot</span>}
+                <span className={`chip ${b.status === "open" ? "bg-[#e3f4e8] text-success" : b.status === "opening_soon" ? "bg-brand-yellow" : ""}`}>
+                  {BRANCH_STATUS_LABEL[b.status ?? "open"]}
+                </span>
+                <span className="text-sm text-muted">{b.name}</span>
+              </summary>
+              <div className="mt-4"><BranchForm branch={b} /></div>
+            </details>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

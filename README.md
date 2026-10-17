@@ -21,7 +21,7 @@ Copy `.env.example` to `.env.local` and fill in the Supabase values to save form
 | Price list (temporary list for every branch and tier, from the 2 May 2026 QC depot PDF) | `lib/catalog.ts` |
 | Per-branch / per-tier price overrides | `lib/pricing.ts` |
 | The five account tiers | `lib/tiers.ts` |
-| Branches and map pins | `lib/branches.ts` |
+| Branches and map pins | Admin > Branches (the `branches` table); `lib/branches.ts` is the starting list and fallback |
 | Partner programs | `lib/partners.ts` |
 | Phone numbers, address, nav | `lib/site.ts` |
 | Brand logo, favicon, app icons | `public/brand/`, `public/*.png`, `app/favicon.ico` |

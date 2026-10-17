@@ -3,7 +3,7 @@ import Image from "next/image";
 import { ArrowRight, Boxes, ChefHat, Handshake, MapPin, Package, Pizza, Snowflake, Store, Truck, Wheat } from "lucide-react";
 import { CATEGORIES, formatPeso, priceRange } from "@/lib/catalog";
 import { priceSheets } from "@/lib/prices-db";
-import { BRANCHES } from "@/lib/branches";
+import { getBranches } from "@/lib/branches-db";
 import logoYellow from "@/public/brand/logo-full-on-yellow.png";
 
 const CAT_ICON = { "ready-to-cook": Pizza, "dough-crust": Wheat, "cheese-sauce-toppings": ChefHat, "boxes-packaging": Boxes, equipment: Package } as const;
@@ -11,6 +11,7 @@ const CAT_ICON = { "ready-to-cook": Pizza, "dough-crust": Wheat, "cheese-sauce-t
 export const revalidate = 300;
 
 export default async function Home() {
+  const BRANCHES = await getBranches();
   const all = await priceSheets();
   const classic = all[0];
   return (

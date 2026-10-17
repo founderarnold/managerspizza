@@ -35,7 +35,7 @@ export function Header() {
     >
       <div className="hidden bg-ink text-white/90 md:block">
         <div className="container-x flex h-9 items-center justify-between text-xs">
-          <span>Pizza supplies at depot prices · 11 branches nationwide</span>
+          <span>Pizza supplies at depot prices · Branches from Luzon to Mindanao</span>
           <a href={`tel:${SITE.phoneLinks[0]}`} className="inline-flex items-center gap-1.5 hover:text-brand-yellow">
             <Phone size={13} aria-hidden /> {SITE.phones.join(" / ")}
           </a>

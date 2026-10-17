@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { BRANCHES } from "@/lib/branches";
+import { getAllBranches } from "@/lib/branches-db";
 import { KIND_LABEL, LEAD_STATUSES, formatDate, leadBranch, type Lead } from "@/lib/leads";
 import { LeadStatusBadge } from "./Badges";
 
@@ -26,7 +26,8 @@ export function StatusFilter({ base, current }: { base: string; current: string 
   );
 }
 
-export function LeadList({ leads, showBranch = false }: { leads: Lead[]; showBranch?: boolean }) {
+export async function LeadList({ leads, showBranch = false }: { leads: Lead[]; showBranch?: boolean }) {
+  const BRANCHES = await getAllBranches();
   if (leads.length === 0) return <p className="card p-6 text-muted">No requests here.</p>;
   return (
     <ul className="grid gap-2">

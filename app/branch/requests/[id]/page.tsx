@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { businessTypeLabel } from "@/lib/site";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, MessageSquare, Phone } from "lucide-react";
 import { canSeeBranch, requireStaff } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { BRANCHES } from "@/lib/branches";
+import { getAllBranches } from "@/lib/branches-db";
 import { TIERS } from "@/lib/tiers";
 import { formatPeso } from "@/lib/catalog";
 import { KIND_LABEL, formatDate, leadBranch, type Lead } from "@/lib/leads";
@@ -24,6 +25,7 @@ const FULFILLMENT: Record<string, string> = {
 };
 
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
+  const BRANCHES = await getAllBranches();
   const { id } = await params;
   const v = await requireStaff(`/branch/requests/${id}`);
   const db = supabaseAdmin()!;
@@ -57,7 +59,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
               <Row k="Name" v={lead.name} />
               <Row k="Mobile" v={lead.mobile} />
               <Row k="Email" v={lead.email} />
-              <Row k="Business" v={lead.business_type} />
+              <Row k="Business" v={businessTypeLabel(lead.business_type)} />
               <Row k="Location" v={[lead.barangay, lead.city, lead.province].filter(Boolean).join(", ")} />
               <Row k="Address" v={lead.address} />
               <Row k="Fulfillment" v={lead.fulfillment ? FULFILLMENT[lead.fulfillment] ?? lead.fulfillment : null} />

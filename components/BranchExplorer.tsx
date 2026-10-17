@@ -40,6 +40,7 @@ export function BranchExplorer({ branches }: { branches: Branch[] }) {
                     </span>
                   )}
                   {b.hq && <span className="chip mt-2 bg-brand-yellow-soft">Main depot</span>}
+                  {b.status === "opening_soon" && <span className="chip mt-2 bg-brand-yellow">Opening soon</span>}
                 </span>
               </div>
             </button>

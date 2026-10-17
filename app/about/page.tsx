@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHero } from "@/components/PageHero";
 import { SITE } from "@/lib/site";
-import { BRANCHES } from "@/lib/branches";
+import { getBranches } from "@/lib/branches-db";
 
 export const metadata: Metadata = { title: "About Us", description: "About Manager's Pizza, its depot, branches and ecosystem.", alternates: { canonical: "/about" } };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const BRANCHES = await getBranches();
   return (
     <>
       <PageHero eyebrow="About" title="Pizza supplies and pizza businesses, made simple">

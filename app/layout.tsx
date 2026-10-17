@@ -5,7 +5,9 @@ import { Footer } from "@/components/Footer";
 import { TabBar } from "@/components/TabBar";
 import { QuoteProvider } from "@/components/QuoteProvider";
 import { SITE } from "@/lib/site";
-import { BRANCHES } from "@/lib/branches";
+import type { Branch } from "@/lib/branches";
+import { getBranches } from "@/lib/branches-db";
+import { BranchesProvider } from "@/components/BranchesProvider";
 import { SwRegister } from "@/components/SwRegister";
 
 export const metadata: Metadata = {
@@ -41,7 +43,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const orgJsonLd = {
+const orgJsonLd = (BRANCHES: Branch[]) => ({
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "Manager's Pizza",
@@ -55,23 +57,26 @@ const orgJsonLd = {
     address: { "@type": "PostalAddress", addressLocality: b.city, addressRegion: b.province, addressCountry: "PH", ...(b.address ? { streetAddress: b.address } : {}) },
     geo: { "@type": "GeoCoordinates", latitude: b.lat, longitude: b.lng },
   })),
-};
+});
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const branches = await getBranches();
   return (
     <html lang="en-PH">
       <body className="flex min-h-dvh flex-col">
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-white">
           Skip to content
         </a>
+        <BranchesProvider branches={branches}>
         <QuoteProvider>
           <Header />
           <main id="main" className="flex-1">{children}</main>
           <Footer />
           <TabBar />
         </QuoteProvider>
+        </BranchesProvider>
         <SwRegister />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd(branches)) }} />
       </body>
     </html>
   );

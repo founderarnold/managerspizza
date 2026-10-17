@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ShieldCheck, Store } from "lucide-react";
 import { requireStaff, type Profile } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { BRANCHES } from "@/lib/branches";
+import { getAllBranches } from "@/lib/branches-db";
 import { TIERS } from "@/lib/tiers";
 import type { Lead } from "@/lib/leads";
 import { AccountStatusBadge, Stat } from "@/components/dashboard/Badges";
@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: "Branch dashboard", robots: { index: 
 export const dynamic = "force-dynamic";
 
 export default async function BranchDashboard({ searchParams }: { searchParams: Promise<{ b?: string; status?: string }> }) {
+  const BRANCHES = await getAllBranches();
   const v = await requireStaff("/branch");
   const sp = await searchParams;
   const mine = v.isAdmin ? BRANCHES : BRANCHES.filter((b) => v.staffBranches?.includes(b.slug));

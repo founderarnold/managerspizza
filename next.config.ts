@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     return [
       // Old Google Sites pages
       { source: "/about-us", destination: "/about", permanent: true },
+      { source: "/partners/distributor-reseller", destination: "/partners/distributor", permanent: true },
       { source: "/catalog", destination: "/shop", permanent: true },
       { source: "/products", destination: "/shop", permanent: true },
       { source: "/price-list", destination: "/shop", permanent: true },
