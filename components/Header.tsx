@@ -8,6 +8,7 @@ import { NAV, SITE } from "@/lib/site";
 import { Logo } from "./Logo";
 import { useQuote } from "./QuoteProvider";
 import { useSignedIn } from "./useSignedIn";
+import { useBranches } from "./BranchesProvider";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -15,6 +16,7 @@ export function Header() {
   const pathname = usePathname();
   const { count } = useQuote();
   const signedIn = useSignedIn();
+  const openBranches = useBranches().filter((b) => b.status !== "opening_soon").length;
   const account = signedIn
     ? { href: "/account", label: "My account", Icon: UserRound }
     : { href: `/login${pathname && pathname !== "/" && !pathname.startsWith("/login") ? `?next=${encodeURIComponent(pathname)}` : ""}`, label: "Sign in", Icon: LogIn };
@@ -35,7 +37,7 @@ export function Header() {
     >
       <div className="hidden bg-ink text-white/90 md:block">
         <div className="container-x flex h-9 items-center justify-between text-xs">
-          <span>Pizza supplies at depot prices · Branches from Luzon to Mindanao</span>
+          <span>Pizza supplies at depot prices · {openBranches} branches nationwide</span>
           <a href={`tel:${SITE.phoneLinks[0]}`} className="inline-flex items-center gap-1.5 hover:text-brand-yellow">
             <Phone size={13} aria-hidden /> {SITE.phones.join(" / ")}
           </a>
@@ -43,14 +45,14 @@ export function Header() {
       </div>
       <div className={`container-x flex items-center justify-between gap-4 transition-all duration-200 ${scrolled ? "h-16" : "h-[72px] md:h-20"}`}>
         <Logo priority className={`w-auto transition-all duration-200 ${scrolled ? "h-10 md:h-12" : "h-11 md:h-14"}`} />
-        <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+        <nav aria-label="Main" className="hidden items-center gap-0.5 lg:flex xl:gap-1">
           {NAV.map((n) => {
             const active = pathname === n.href || pathname.startsWith(n.href + "/");
             return (
               <Link
                 key={n.href}
                 href={n.href}
-                className={`rounded-full px-3 py-2 text-[14.5px] font-medium transition ${
+                className={`whitespace-nowrap rounded-full px-2.5 py-2 text-[14.5px] xl:px-3 font-medium transition ${
                   active ? "bg-sand text-ink" : "text-graphite hover:bg-sand hover:text-ink"
                 }`}
               >
@@ -63,12 +65,13 @@ export function Header() {
           <Link
             href={account.href}
             aria-label={account.label}
-            className={`inline-flex h-11 items-center justify-center gap-2 rounded-full border border-line bg-white px-3 text-[15px] font-semibold text-ink transition hover:border-ink/40 sm:px-4 ${
+            className={`inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-line bg-white px-3 text-[15px] font-semibold text-ink transition hover:border-ink/40 sm:px-4 ${
               pathname.startsWith("/account") || pathname.startsWith("/login") ? "border-ink/40 bg-sand" : ""
             }`}
           >
             <account.Icon size={18} aria-hidden />
-            <span className="hidden sm:inline">{account.label}</span>
+            <span className="hidden sm:inline lg:hidden">{account.label}</span>
+            <span className="hidden min-[1140px]:inline">{account.label}</span>
           </Link>
           <Link href="/quote" className="btn-primary !px-4" aria-label={`Quote list, ${count} items`}>
             <ClipboardList size={18} aria-hidden />

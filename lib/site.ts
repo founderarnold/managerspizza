@@ -25,7 +25,8 @@ export const BUSINESS_TYPES = [
   { id: "store", label: "Existing pizza store" },
   { id: "distributor", label: "Distributor" },
   { id: "reseller", label: "Reseller" },
-  { id: "retailer", label: "Retailer" },
+  { id: "retailer", label: "Retailer (sari-sari, grocery)" },
+  { id: "dropshipper", label: "Dropshipper / online seller" },
   { id: "other", label: "Other" },
 ] as const;
 export const businessTypeLabel = (id: string | null | undefined) => BUSINESS_TYPES.find((t) => t.id === id)?.label ?? id ?? "";
