@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BadgeCheck, Building2, ClipboardList, Clock, LayoutDashboard, LogOut, MessageSquare, Package, ShieldCheck, ShoppingBag, Tag } from "lucide-react";
-import { requireViewer } from "@/lib/auth";
+import { canOrder, requireViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getAllBranches } from "@/lib/branches-db";
 import { TIERS } from "@/lib/tiers";
@@ -26,13 +26,13 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
   const leads = (data ?? []) as Lead[];
   const tier = TIERS.find((t) => t.id === p?.tier);
   const branch = BRANCHES.find((b) => b.slug === p?.branch_slug);
-  const approved = p?.status === "approved";
+  const approved = canOrder(p);
 
   return (
     <div className="container-x py-8 md:py-12">
       {welcome && (
         <p role="status" className="mb-6 rounded-2xl border border-success/30 bg-[#e3f4e8] p-4 text-sm text-success">
-          Welcome to Manager&apos;s Pizza! Your account is created. Our team will review it and set your price level.
+          Welcome to Manager&apos;s Pizza! You can now see your prices and order online.
         </p>
       )}
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -67,22 +67,17 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         </div>
         <div className="card p-5">
           <p className="flex items-center gap-2 text-sm text-muted"><Tag size={16} aria-hidden /> Price level</p>
-          <p className="mt-1 text-lg font-bold">{approved && tier ? tier.name : "To be assigned"}</p>
+          <p className="mt-1 text-lg font-bold">{approved && tier ? tier.name : "–"}</p>
+          {approved && ["barangay", "city"].includes(p.tier) && (
+            <Link href="/partners/distributor" className="mt-1 inline-block text-xs font-semibold text-brand-red-deep underline">Apply as Exclusive Distributor</Link>
+          )}
         </div>
         <div className="card p-5">
           <p className="flex items-center gap-2 text-sm text-muted"><Building2 size={16} aria-hidden /> Your branch</p>
-          <p className="mt-1 text-lg font-bold">{branch ? branch.city : "To be assigned"}</p>
+          <p className="mt-1 text-lg font-bold">{branch ? branch.city : "Not chosen yet"}</p>
         </div>
       </div>
 
-      {p?.status === "pending" && (
-        <div className="mt-4 flex gap-3 rounded-2xl border border-brand-yellow bg-brand-yellow-soft/50 p-4 text-sm leading-relaxed">
-          <Clock size={18} className="mt-0.5 shrink-0" aria-hidden />
-          <span>
-            <strong>Your account is waiting for approval.</strong> Manager&apos;s Pizza will check your details and set your price level and branch, usually within one business day. You can already send quotation requests. Questions? Call or SMS {SITE.phones[0]}.
-          </span>
-        </div>
-      )}
       {p?.status === "suspended" && (
         <p className="mt-4 rounded-2xl border border-brand-red-deep/30 bg-[#fff1f1] p-4 text-sm text-brand-red-deep">
           Your account is on hold. Please call {SITE.phones[0]} for help.

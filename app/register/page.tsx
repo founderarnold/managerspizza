@@ -18,7 +18,7 @@ export default async function RegisterPage() {
         <div className="card p-6 sm:p-8">
           <h1 className="text-3xl font-bold">Create your account</h1>
           <p className="mt-2 text-muted">
-            After you sign up, Manager&apos;s Pizza checks your details and sets your price level and branch. You can sign in right away and send quotation requests while you wait.
+            It&apos;s free. Retailers and resellers see their prices and can order right away. Only Exclusive Distributor applications with territorial rights need approval.
           </p>
           <div className="mt-6">
             {ssoEnabled() && (
@@ -31,7 +31,7 @@ export default async function RegisterPage() {
         </div>
         <aside className="card content-start p-5">
           <h2 className="font-bold">Price levels</h2>
-          <p className="mt-1 text-sm text-muted">Your level is assigned by Manager&apos;s Pizza, not chosen at sign-up.</p>
+          <p className="mt-1 text-sm text-muted">Retailers start at Barangay Retailer and resellers or online sellers at City Reseller prices. Distributor levels come with an approved Exclusive Distributor application.</p>
           <ul className="mt-4 grid gap-3 text-sm">
             {TIERS.map((t) => (
               <li key={t.id}>

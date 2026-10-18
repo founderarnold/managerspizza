@@ -21,12 +21,12 @@ export function PriceBanner() {
   if (me.signedIn)
     return (
       <p className="rounded-2xl bg-brand-yellow-soft/60 px-4 py-3 text-sm">
-        Your account is waiting for approval. Prices and ordering open once Manager&apos;s Pizza sets your price level. You can already send a request for quotation.
+        Your account is on hold or not complete yet. Open My account to finish it, or message us.
       </p>
     );
   return (
     <p className="rounded-2xl bg-brand-yellow-soft/60 px-4 py-3 text-sm">
-      Prices depend on your account level (Distributor, Reseller or Retailer).{" "}
+      Free account, no approval needed: retailers and resellers see their prices and order right away.{" "}
       <Link href="/login?next=/shop" className="font-semibold text-brand-red-deep underline">Sign in</Link> or{" "}
       <Link href="/register" className="font-semibold text-brand-red-deep underline">create an account</Link> to see your price and order.
     </p>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { requireViewer } from "@/lib/auth";
+import { canOrder, requireViewer } from "@/lib/auth";
 import { getBranches } from "@/lib/branches-db";
 import { CheckoutForm } from "@/components/shop/CheckoutForm";
 
@@ -18,9 +18,9 @@ export default async function CheckoutPage() {
         <ChevronLeft size={16} aria-hidden /> Back to cart
       </Link>
       <h1 className="mt-2 text-3xl font-extrabold md:text-4xl">Checkout</h1>
-      {p?.status !== "approved" ? (
+      {!canOrder(p) ? (
         <p className="card mt-6 p-6">
-          Your account needs to be approved before you can order. <Link href="/account" className="font-semibold text-brand-red-deep underline">See my account</Link>
+          Your account is on hold or not complete yet. <Link href="/account" className="font-semibold text-brand-red-deep underline">See my account</Link>
         </p>
       ) : (
         <CheckoutForm

@@ -117,3 +117,15 @@ export function canSeeBranch(v: Viewer, branch: string | null | undefined) {
   if (v.isAdmin) return true;
   return !!branch && (v.staffBranches ?? []).includes(branch);
 }
+
+/** Anyone with an account can see their prices and order right away; only suspended accounts can't. */
+export const canOrder = (p: Pick<Profile, "status"> | null | undefined): p is Profile => !!p && p.status !== "suspended";
+
+/**
+ * The price level a new account starts with, without approval: resellers and online sellers get City Reseller,
+ * everyone else Barangay Retailer. Distributor levels (and Factory) are given only by an admin, after an Exclusive
+ * Distributor application with territorial rights is approved.
+ */
+export function selfServeTier(businessType: string | null | undefined): TierId {
+  return businessType === "reseller" || businessType === "dropshipper" ? "city" : "barangay";
+}

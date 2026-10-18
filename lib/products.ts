@@ -8,8 +8,9 @@ import { PRICE_SHEETS, type CategoryId, type Handling, type PriceSheet } from ".
  * Customized and made-to-order items are "Request for Quotation" (RFQ): they go to the quote list
  * instead of the cart.
  */
-export const RFQ_SHEETS = new Set(["round-dough-crust", "square-dough-crust", "corrugated-pizza-boxes", "custom-design-pizza-boxes"]);
-const RFQ_ROW = /sachet/i;
+export const RFQ_SHEETS = new Set(["custom-design-pizza-boxes"]);
+/** Rows that are made to order. Everything else can be bought directly; bulk orders can also ask for a quote. */
+const RFQ_ROW = /(?!)/;
 
 export interface Variant {
   /** "row:column" */

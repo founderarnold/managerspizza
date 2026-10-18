@@ -92,7 +92,7 @@ function Summary({ subtotal, count, blocked, missing, compact = false }: { subto
       </div>
       {blocked ? (
         <Link href={me?.signedIn ? "/account" : "/login?next=/checkout"} className={`btn-primary ${compact ? "" : "w-full"}`}>
-          {me?.signedIn ? "Account not approved yet" : "Sign in to check out"}
+          {me?.signedIn ? "Account on hold" : "Sign in to check out"}
         </Link>
       ) : (
         <Link href="/checkout" aria-disabled={missing} className={`btn-primary ${compact ? "" : "w-full"} ${missing ? "pointer-events-none opacity-50" : ""}`}>

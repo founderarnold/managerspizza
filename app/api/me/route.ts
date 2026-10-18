@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getViewer } from "@/lib/auth";
+import { canOrder as canOrderFn, getViewer } from "@/lib/auth";
 import { priceSheets } from "@/lib/prices-db";
 import { priceKey } from "@/lib/products";
 import { TIERS } from "@/lib/tiers";
@@ -12,7 +12,7 @@ export async function GET() {
   const v = await getViewer().catch(() => null);
   if (!v) return NextResponse.json({ signedIn: false }, { headers: { "cache-control": "no-store" } });
   const p = v.profile;
-  const canOrder = p?.status === "approved";
+  const canOrder = canOrderFn(p);
   const prices: Record<string, number> = {};
   if (canOrder) {
     for (const s of await priceSheets(p.branch_slug, p.tier))

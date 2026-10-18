@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { getViewer, canSeeBranch } from "@/lib/auth";
+import { canOrder, getViewer, canSeeBranch } from "@/lib/auth";
 import { getBranches } from "@/lib/branches-db";
 import { priceSheets } from "@/lib/prices-db";
 import { findVariant } from "@/lib/products";
@@ -31,7 +31,7 @@ export async function placeOrder(_: FormState, fd: FormData): Promise<FormState>
   const db = supabaseAdmin();
   if (!v || !db) return { error: "Please sign in again." };
   const p = v.profile;
-  if (p?.status !== "approved") return { error: "Your account must be approved before you can order." };
+  if (!canOrder(p)) return { error: p ? "Your account is on hold. Please message or call Manager's Pizza." : "Please complete your account details first." };
 
   let lines: { sheet: string; row: string; column: string; qty: number }[];
   try {

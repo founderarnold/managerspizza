@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Boxes, ChefHat, ClipboardList, Lock, Minus, Package, Pizza, Plus, ShoppingCart, Snowflake, Thermometer, Wheat } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Boxes, ChefHat, ClipboardList, Lock, Minus, Package, Pizza, Plus, ShoppingCart, Snowflake, Thermometer, Wheat, Zap } from "lucide-react";
 import type { Product } from "@/lib/products";
 import { formatPeso } from "@/lib/catalog";
 import { useShop } from "./ShopProvider";
@@ -56,6 +57,7 @@ export function QtyStepper({ value, onChange, label }: { value: number; onChange
 export function ProductCard({ product }: { product: Product }) {
   const { me, priceOf, addToCart } = useShop();
   const { add: addToQuote } = useQuote();
+  const router = useRouter();
   const [vi, setVi] = useState(0);
   const [qty, setQty] = useState(1);
   const v = product.variants[vi] ?? product.variants[0];
@@ -103,7 +105,7 @@ export function ProductCard({ product }: { product: Product }) {
         ) : me === null ? (
           <div className="h-8 w-24 animate-pulse rounded bg-sand" aria-hidden />
         ) : me.signedIn ? (
-          <p className="text-sm text-muted">{me.status === "suspended" ? "Account on hold" : "Price shown once your account is approved"}</p>
+          <p className="text-sm text-muted">{me.status === "suspended" ? "Account on hold" : "Complete your account to see prices"}</p>
         ) : (
           <Link href="/login?next=/shop" className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-red-deep">
             <Lock size={14} aria-hidden /> Sign in to see your price
@@ -121,18 +123,40 @@ export function ProductCard({ product }: { product: Product }) {
               <ClipboardList size={17} aria-hidden /> Request quote
             </button>
           ) : me?.canOrder ? (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                className="btn-ghost !px-2 text-sm"
+                disabled={price == null}
+                onClick={() => addToCart({ sheet: product.sheet, row: v.row, column: v.column }, qty, `${product.name} (${v.label})`)}
+              >
+                <ShoppingCart size={16} aria-hidden /> Cart
+              </button>
+              <button
+                type="button"
+                className="btn-primary !px-2 text-sm"
+                disabled={price == null}
+                onClick={() => {
+                  addToCart({ sheet: product.sheet, row: v.row, column: v.column }, qty);
+                  router.push("/checkout");
+                }}
+              >
+                <Zap size={16} aria-hidden /> Buy now
+              </button>
+            </div>
+          ) : (
+            <Link href={me?.signedIn ? "/account" : "/login?next=/shop"} className="btn-primary !px-3 text-sm">
+              {me?.signedIn ? "My account" : "Sign in to order"}
+            </Link>
+          )}
+          {!product.rfq && (
             <button
               type="button"
-              className="btn-primary !px-3"
-              disabled={price == null}
-              onClick={() => addToCart({ sheet: product.sheet, row: v.row, column: v.column }, qty, `${product.name} (${v.label})`)}
+              className="text-center text-xs font-semibold text-muted underline-offset-2 hover:text-brand-red-deep hover:underline"
+              onClick={() => addToQuote({ id: `${product.sheet}:${v.row}:${v.column}`, sheet: product.sheet, name: product.name, option: optionText, unitPrice: null }, qty)}
             >
-              <ShoppingCart size={17} aria-hidden /> Add to cart
+              Bulk order? Request a quote
             </button>
-          ) : (
-            <Link href={me?.signedIn ? "/account" : "/login?next=/shop"} className="btn-ghost !px-3 text-sm">
-              {me?.signedIn ? "My account" : "Sign in"}
-            </Link>
           )}
         </div>
       </div>

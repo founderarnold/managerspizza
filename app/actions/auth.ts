@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { getViewer } from "@/lib/auth";
+import { getViewer, selfServeTier } from "@/lib/auth";
 import { alertCustomer, alertStaff } from "@/lib/notify";
 import { after } from "next/server";
 import { getBranches } from "@/lib/branches-db";
@@ -80,6 +80,9 @@ export async function register(_: FormState, fd: FormData): Promise<FormState> {
     city: str(fd, "city", 80) || null,
     barangay: str(fd, "barangay", 80) || null,
     branch_slug: branch || null,
+    // No approval needed to shop: the price level follows the business type (see selfServeTier).
+    tier: selfServeTier(str(fd, "businessType", 60)),
+    status: "approved",
   });
   if (pErr) {
     await db.auth.admin.deleteUser(data.user.id);
@@ -91,13 +94,13 @@ export async function register(_: FormState, fd: FormData): Promise<FormState> {
   after(() =>
     Promise.all([
       alertStaff(branch || null, {
-        subject: `New account to approve: ${full_name}`,
-        lines: [`${full_name}${biz ? ` (${biz})` : ""} created an account.`, `${email} · ${mobile}${str(fd, "city", 80) ? ` · ${str(fd, "city", 80)}` : ""}`, "Set their price level and branch, then approve them so they can order."],
+        subject: `New customer: ${full_name}`,
+        lines: [`${full_name}${biz ? ` (${biz})` : ""} created an account.`, `${email} · ${mobile}${str(fd, "city", 80) ? ` · ${str(fd, "city", 80)}` : ""}`, str(fd, "businessType", 60) === "distributor" ? "They chose Distributor. Distributor prices need an approved Exclusive Distributor application." : "They can already see their prices and order."],
         link: { href: `/admin/accounts/${data.user.id}`, label: "Review the account" },
       }),
       alertCustomer(data.user.id, {
         subject: "Welcome to Manager's Pizza",
-        lines: [`Hi ${full_name}, your account is created.`, "We'll check your details and set your price level, usually within one business day. We'll email you once you can order."],
+        lines: [`Hi ${full_name}, your account is created.`, "You can already see your prices and order online. Applying to be an Exclusive Distributor with territorial rights? Send your application on the Partners page and we'll review it."],
         link: { href: "/account", label: "My account" },
       }),
     ]),
@@ -140,14 +143,16 @@ export async function updateProfile(_: FormState, fd: FormData): Promise<FormSta
         id: v.id,
         email: v.email,
         branch_slug: (await getBranches()).some((b) => b.slug === str(fd, "branch", 60)) ? str(fd, "branch", 60) : null,
+        tier: selfServeTier(row.business_type),
+        status: "approved",
       });
   if (error) return { error: "We couldn't save your details. Please try again." };
   if (!v.profile) {
-    // A FLAME PH member's first visit: their Manager's Pizza account now needs approval.
+    // A FLAME PH member's first visit: let the team know a new customer joined.
     after(() =>
       alertStaff(str(fd, "branch", 60) || null, {
-        subject: `New account to approve: ${full_name}`,
-        lines: [`${full_name}${row.business_name ? ` (${row.business_name})` : ""} joined with their FLAME PH account.`, `${v.email} · ${mobile}${row.city ? ` · ${row.city}` : ""}`, "Set their price level and branch, then approve them so they can order."],
+        subject: `New customer: ${full_name}`,
+        lines: [`${full_name}${row.business_name ? ` (${row.business_name})` : ""} joined with their FLAME PH account.`, `${v.email} · ${mobile}${row.city ? ` · ${row.city}` : ""}`, str(fd, "businessType", 60) === "distributor" ? "They chose Distributor. Distributor prices need an approved Exclusive Distributor application." : "They can already see their prices and order."],
         link: { href: `/admin/accounts/${v.id}`, label: "Review the account" },
       }),
     );
