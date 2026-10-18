@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { BadgeCheck, Building2, ClipboardList, Clock, LayoutDashboard, LogOut, MessageSquare, Package, ShieldCheck, ShoppingBag, Tag } from "lucide-react";
 import { requireViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-server";
@@ -18,6 +19,7 @@ export const dynamic = "force-dynamic";
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const BRANCHES = await getAllBranches();
   const v = await requireViewer("/account");
+  if (!v.profile) redirect("/account/complete");
   const { welcome } = await searchParams;
   const p = v.profile;
   const { data } = await supabaseAdmin()!.from("leads").select("*").eq("user_id", v.id).order("created_at", { ascending: false }).limit(50);

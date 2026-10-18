@@ -4,6 +4,8 @@ import { LogIn } from "lucide-react";
 import { getViewer } from "@/lib/auth";
 import { SignInForm } from "@/components/auth/AuthForms";
 import { SITE } from "@/lib/site";
+import { hubLoginUrl, ssoEnabled } from "@/lib/flame-sso";
+import { FlameButton } from "@/components/auth/FlameButton";
 
 export const metadata: Metadata = { title: "Sign in", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -18,7 +20,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <LogIn size={30} className="text-brand-red-deep" aria-hidden />
         <h1 className="mt-3 text-3xl font-bold">Sign in</h1>
         <p className="mt-2 text-muted">See your price level, track your quotation requests and, for staff, open your branch dashboard.</p>
-        <div className="mt-6">
+        <div className="mt-6 grid gap-5">
+          {ssoEnabled() && <FlameButton href={hubLoginUrl(`${SITE.url}${next}`)} />}
           <SignInForm next={next} />
         </div>
         <p className="mt-6 border-t border-line pt-4 text-xs leading-relaxed text-muted">

@@ -8,6 +8,8 @@ import { getViewer } from "@/lib/auth";
 import { alertCustomer, alertStaff } from "@/lib/notify";
 import { after } from "next/server";
 import { getBranches } from "@/lib/branches-db";
+import { HUB_URL, SSO_CLIENT, SSO_COOKIE, ssoEnabled } from "@/lib/flame-sso";
+import { cookies } from "next/headers";
 
 export type FormState = { error?: string; ok?: string } | null;
 
@@ -30,7 +32,9 @@ export async function signIn(_: FormState, fd: FormData): Promise<FormState> {
   if (!email || !password) return { error: "Please enter your email and password." };
   const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) return { error: "That email and password don't match. Please try again." };
-  redirect(safeNext(fd.get("next")));
+  // Pass through flameph.org (one FLAME PH account) when SSO is on; otherwise straight to the page.
+  const next = safeNext(fd.get("next"));
+  redirect(ssoEnabled() ? `/auth/flame/push?next=${encodeURIComponent(next)}` : next);
 }
 
 export async function register(_: FormState, fd: FormData): Promise<FormState> {
@@ -57,6 +61,8 @@ export async function register(_: FormState, fd: FormData): Promise<FormState> {
     password,
     email_confirm: true,
     user_metadata: { full_name },
+    // The email isn't checked here, so it isn't shared with other FLAME PH sites until proven (see lib/flame-sso.ts).
+    app_metadata: { email_unverified: true },
   });
   if (error || !data.user) {
     const taken = /already|exists|registered/i.test(error?.message ?? "");
@@ -102,7 +108,10 @@ export async function register(_: FormState, fd: FormData): Promise<FormState> {
 export async function signOut() {
   const sb = await supabaseServer();
   await sb?.auth.signOut();
-  redirect("/");
+  if (!ssoEnabled()) redirect("/");
+  // Stay logged out: no automatic sign-in from flameph.org until they sign in again, and log out there too.
+  (await cookies()).set(SSO_COOKIE, "off", { maxAge: 60 * 60 * 24 * 30, path: "/", sameSite: "lax", secure: true, httpOnly: true });
+  redirect(`${HUB_URL}/sso/logout?client=${SSO_CLIENT}&return=${encodeURIComponent("https://www.managerspizza.com/")}`);
 }
 
 export async function updateProfile(_: FormState, fd: FormData): Promise<FormState> {
@@ -126,9 +135,26 @@ export async function updateProfile(_: FormState, fd: FormData): Promise<FormSta
   };
   const { error } = v.profile
     ? await db.from("profiles").update(row).eq("id", v.id)
-    : await db.from("profiles").insert({ ...row, id: v.id, email: v.email });
+    : await db.from("profiles").insert({
+        ...row,
+        id: v.id,
+        email: v.email,
+        branch_slug: (await getBranches()).some((b) => b.slug === str(fd, "branch", 60)) ? str(fd, "branch", 60) : null,
+      });
   if (error) return { error: "We couldn't save your details. Please try again." };
+  if (!v.profile) {
+    // A FLAME PH member's first visit: their Manager's Pizza account now needs approval.
+    after(() =>
+      alertStaff(str(fd, "branch", 60) || null, {
+        subject: `New account to approve: ${full_name}`,
+        lines: [`${full_name}${row.business_name ? ` (${row.business_name})` : ""} joined with their FLAME PH account.`, `${v.email} · ${mobile}${row.city ? ` · ${row.city}` : ""}`, "Set their price level and branch, then approve them so they can order."],
+        link: { href: `/admin/accounts/${v.id}`, label: "Review the account" },
+      }),
+    );
+  }
   revalidatePath("/account");
+  const next = safeNext(fd.get("next"));
+  if (fd.get("next")) redirect(next);
   return { ok: "Saved." };
 }
 

@@ -5,15 +5,29 @@ import { useActionState } from "react";
 import { changePassword, updateProfile, type FormState } from "@/app/actions/auth";
 import { FormMessage, SubmitButton } from "@/components/dashboard/ui";
 import type { Profile } from "@/lib/auth";
+import { useBranches } from "@/components/BranchesProvider";
 
-export function ProfileForm({ profile }: { profile: Profile | null }) {
+export function ProfileForm({ profile, next, defaultName }: { profile: Profile | null; next?: string; defaultName?: string }) {
   const [state, action] = useActionState<FormState, FormData>(updateProfile, null);
+  const branches = useBranches().filter((b) => b.status !== "opening_soon");
   const p = profile;
   return (
     <form action={action} className="grid gap-4 sm:grid-cols-2">
+      {next && <input type="hidden" name="next" value={next} />}
+      {!p && (
+        <label className="label sm:col-span-2">
+          Nearest branch
+          <select className="field" name="branch" defaultValue="">
+            <option value="">Not sure yet</option>
+            {branches.map((b) => (
+              <option key={b.slug} value={b.slug}>{b.city}, {b.province}</option>
+            ))}
+          </select>
+        </label>
+      )}
       <label className="label sm:col-span-2">
         Full name *
-        <input className="field" name="name" required defaultValue={p?.full_name ?? ""} autoComplete="name" />
+        <input className="field" name="name" required defaultValue={p?.full_name ?? defaultName ?? ""} autoComplete="name" />
       </label>
       <label className="label">
         Mobile number *

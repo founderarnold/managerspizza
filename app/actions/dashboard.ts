@@ -311,7 +311,8 @@ export async function createAccount(_: FormState, fd: FormData): Promise<FormSta
   if (!isTier(tier)) return { error: "Please choose a price level." };
   if (branch && !(await isBranch(branch))) return { error: "Please choose a branch from the list." };
 
-  const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name } });
+  // Email not checked by the person yet: not shared with other FLAME PH sites until they sign in with FLAME PH once.
+  const { data, error } = await db.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name }, app_metadata: { email_unverified: true } });
   if (error || !data.user)
     return { error: /already|exists|registered/i.test(error?.message ?? "") ? "An account with this email already exists. Find it in the list below and change its price level there." : "We couldn't create the account. Please try again." };
   const now = new Date().toISOString();

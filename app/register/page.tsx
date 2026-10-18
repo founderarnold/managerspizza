@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/auth";
 import { RegisterForm } from "@/components/auth/AuthForms";
+import { FlameButton } from "@/components/auth/FlameButton";
+import { hubLoginUrl, ssoEnabled } from "@/lib/flame-sso";
+import { SITE } from "@/lib/site";
 import { TIERS } from "@/lib/tiers";
 
 export const metadata: Metadata = { title: "Create an account", robots: { index: false } };
@@ -18,6 +21,11 @@ export default async function RegisterPage() {
             After you sign up, Manager&apos;s Pizza checks your details and sets your price level and branch. You can sign in right away and send quotation requests while you wait.
           </p>
           <div className="mt-6">
+            {ssoEnabled() && (
+              <div className="mb-6">
+                <FlameButton href={hubLoginUrl(`${SITE.url}/account`)} label="Join with your FLAME PH account" />
+              </div>
+            )}
             <RegisterForm />
           </div>
         </div>
