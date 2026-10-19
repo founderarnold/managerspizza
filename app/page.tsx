@@ -6,6 +6,7 @@ import { Catalog } from "@/components/shop/Catalog";
 import { priceSheets } from "@/lib/prices-db";
 import { getBranches } from "@/lib/branches-db";
 import logoYellow from "@/public/brand/logo-full-on-yellow.png";
+import { FlameAdSlot } from "@/components/FlameAdSlot";
 
 
 
@@ -59,6 +60,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      <div className="container-x py-5 md:py-7"><FlameAdSlot slot="HOME_AFTER_HERO" /></div>
 
       <section id="shop" className="container-x scroll-mt-20 py-10 md:py-14">
         <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
