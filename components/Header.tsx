@@ -48,7 +48,7 @@ export function Header() {
       </div>
       <div className={`container-x flex items-center justify-between gap-4 transition-all duration-200 ${scrolled ? "h-16" : "h-[72px] md:h-20"}`}>
         <Logo priority className={`w-auto transition-all duration-200 ${scrolled ? "h-10 md:h-12" : "h-11 md:h-14"}`} />
-        <nav aria-label="Main" className="hidden items-center gap-0.5 lg:flex xl:gap-1">
+        <nav aria-label="Main" className="hidden items-center gap-0.5 min-[1140px]:flex xl:gap-1">
           {NAV.map((n) => {
             const active = pathname === n.href || pathname.startsWith(n.href + "/");
             return (
@@ -96,7 +96,7 @@ export function Header() {
           </Link>
           <button
             type="button"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line lg:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line min-[1140px]:hidden"
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -107,7 +107,7 @@ export function Header() {
         </div>
       </div>
       {open && (
-        <nav id="mobile-nav" aria-label="Mobile" className="border-t border-line bg-white lg:hidden">
+        <nav id="mobile-nav" aria-label="Mobile" className="border-t border-line bg-white min-[1140px]:hidden">
           <ul className="container-x grid gap-1 py-3">
             {NAV.map((n) => (
               <li key={n.href}>
